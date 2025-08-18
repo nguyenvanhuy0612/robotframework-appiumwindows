@@ -65,8 +65,13 @@ class _ElementKeywords(KeywordGroup):
                 return True
             raise Exception(f"Element '{locator}' not found yet")
 
-        rr = self._retry(timeout, func)
-        return self._handle_retry_result(rr, f"Check existence of '{locator}'", timeout, required=False)
+        return self._retry(
+            timeout,
+            func,
+            action=f"Check existence of '{locator}'",
+            required=False,
+            poll_interval=0.5
+        )
 
     def appium_wait_until_element_is_visible(self, locator, timeout=20):
         self._info(f"Appium Wait Until Element Is Visible '{locator}', timeout {timeout}")
@@ -78,132 +83,184 @@ class _ElementKeywords(KeywordGroup):
                 return True
             raise Exception(f"Element '{locator}' not visible yet")
 
-        rr = self._retry(timeout, func)
-        return self._handle_retry_result(rr, f"Wait until element '{locator}' is visible", timeout, required=False)
+        return self._retry(
+            timeout,
+            func,
+            action=f"Wait until element '{locator}' is visible",
+            required=False,
+            poll_interval=0.5
+        )
 
     def appium_wait_until_element_is_not_visible(self, locator, timeout=20):
         self._info(f"Appium Wait Until Element Is Not Visible '{locator}', timeout {timeout}")
-        maxtime = self._get_maxtime(timeout)
-        not_found = 0
-        while time.time() < maxtime:
+
+        def func():
             elements = self._element_find(locator, False, False)
+            # require 2 consecutive checks where element is not found
             if not elements:
-                not_found += 1
-                if not_found >= 2:
-                    self._info(f"Element '{locator}' not exist, return False")
-                    return False
+                if not hasattr(func, "_not_found_count"):
+                    func._not_found_count = 1
+                else:
+                    func._not_found_count += 1
+                if func._not_found_count >= 2:
+                    self._info(f"Element '{locator}' not exist")
+                    return True
             else:
-                not_found = 0
-            time.sleep(0.5)
-        self._info(f"Element '{locator}' exist, return True")
-        return True
+                func._not_found_count = 0
+            raise Exception(f"Element '{locator}' still visible")
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Wait until element '{locator}' is not visible",
+            required=False,
+            poll_interval=0.5
+        )
 
     def appium_element_should_be_visible(self, locator, timeout=20):
         self._info(f"Appium Element Should Be Visible '{locator}', timeout {timeout}")
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
-            try:
-                element = self._element_find(locator, True, True)
-                if element and element.is_displayed():
-                    self._info(f"Element '{locator}' visible, return True")
-                    return
-            except Exception:
-                pass
-            time.sleep(2)
-        raise AssertionError("Element '%s' should be visible but did not" % locator)
+
+        def func():
+            element = self._element_find(locator, True, True)
+            if element and element.is_displayed():
+                self._info(f"Element '{locator}' visible")
+                return True
+            raise Exception(f"Element '{locator}' not visible yet")
+
+        self._retry(
+            timeout,
+            func,
+            action=f"Assert element '{locator}' is visible",
+            required=True,
+            poll_interval=0.5
+        )
 
     def appium_first_found_elements(self, *locators, timeout=20):
-        self._info(f"Appium First Found Elements '{locators}'")
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
+        self._info(f"Appium First Found Elements '{locators}', timeout {timeout}")
+
+        def func():
             for index, locator in enumerate(locators):
                 elements = self._element_find(locator, False, False)
                 if elements:
                     self._info(f"Element '{locator}' exist, return {index}")
                     return index
-                time.sleep(0.5)
-            time.sleep(0.5)
-        self._info(f"Not Found Element From {locators}, timeout '{timeout}'")
-        return -1
+            raise Exception(f"None of the elements {locators} found yet")
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Find first existing element from {locators}",
+            required=False,
+            return_value=True,
+            poll_interval=0.5
+        ) or -1
 
     # TODO FIND ELEMENT
     def appium_get_element(self, locator, timeout=20, required=True):
         self._info(f"Appium Get Element '{locator}', timeout '{timeout}', required '{required}'")
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
+
+        def func():
             element = self._element_find(locator, True, False)
             if element:
                 self._info(f"Element exist: '{element}'")
                 return element
-            time.sleep(0.5)
-        if required:
-            raise Exception(f"Element '{locator}' does not exist within timeout of '{timeout}'")
-        else:
-            return None
+            raise Exception(f"Element '{locator}' not found yet")
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Get element '{locator}'",
+            required=required,
+            return_value=True,
+            poll_interval=0.5
+        )
 
     def appium_get_elements(self, locator, timeout=20):
-        self._info(f"Appium Get Elements '{locator}'")
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
+        self._info(f"Appium Get Elements '{locator}', timeout {timeout}")
+
+        def func():
             elements = self._element_find(locator, False, False)
             if elements:
                 self._info(f"Elements exist: '{elements}'")
                 return elements
-            time.sleep(0.5)
-        self._info(f"Element '{locator}' does not exist within timeout of '{timeout}'")
-        return []
+            raise Exception(f"Elements '{locator}' not found yet")
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Get elements '{locator}'",
+            required=False,
+            return_value=True,
+            poll_interval=0.5
+        ) or []
 
     def appium_get_button_element(self, index_or_name, timeout=20, required=True):
         self._info(f"Appium Get Button Element '{index_or_name}', timeout '{timeout}', required '{required}'")
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
-            try:
-                element = self._find_element_by_class_name('Button', index_or_name)
+
+        def func():
+            element = self._find_element_by_class_name('Button', index_or_name)
+            if element:
                 self._info(f"Element exist: '{element}'")
                 return element
-            except Exception:
-                pass
-            time.sleep(0.5)
-        if required:
-            raise Exception(f"Button '{index_or_name}' does not exist within timeout of '{timeout}'")
-        else:
-            return None
+            raise Exception(f"Button '{index_or_name}' not found yet")
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Get button element '{index_or_name}'",
+            required=required,
+            return_value=True,
+            poll_interval=0.5
+        )
 
     def appium_get_element_text(self, text, exact_match=False, timeout=20, required=True):
         self._info(
-            f"Appium Get Element Text '{text}', exact_match '{exact_match}', timeout '{timeout}', required '{required}'")
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
+            f"Appium Get Element Text '{text}', exact_match '{exact_match}', timeout '{timeout}', required '{required}'"
+        )
+
+        def func():
             element = self._element_find_by('Name', text, exact_match)
             if element:
+                self._info(f"Element text found: '{text}'")
                 return element
-            time.sleep(0.5)
-        if required:
-            raise Exception(f"Element Text '{text}' does not exist within timeout of '{timeout}'")
-        else:
-            return None
+            raise Exception(f"Element Text '{text}' not found yet")
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Get element text '{text}'",
+            required=required,
+            return_value=True,
+            poll_interval=0.5
+        )
 
     def appium_get_element_by(self, key='*', value='', exact_match=False, timeout=20, required=True):
         self._info(
-            f"Appium Get Element By '{key}={value}', exact_match '{exact_match}', timeout '{timeout}', required '{required}'")
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
-            try:
-                element = self._element_find_by(key, value, exact_match)
+            f"Appium Get Element By '{key}={value}', exact_match '{exact_match}', timeout '{timeout}', required '{required}'"
+        )
+
+        def func():
+            element = self._element_find_by(key, value, exact_match)
+            if element:
                 self._info(f"Element exist: '{element}'")
                 return element
-            except Exception:
-                pass
-            time.sleep(0.5)
-        if required:
-            raise Exception(f"Element '{key}={value}' does not exist within timeout of '{timeout}'")
-        else:
-            return None
+            raise Exception(f"Element '{key}={value}' not found yet")
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Get element by '{key}={value}'",
+            required=required,
+            return_value=True,
+            poll_interval=0.5
+        )
 
     def appium_get_element_in_element(self, parent_locator, child_locator, timeout=20):
-        self._info(f"Appium Get Element In Element, child '{child_locator}', parent '{parent_locator}'")
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
+        self._info(
+            f"Appium Get Element In Element, child '{child_locator}', parent '{parent_locator}', timeout {timeout}"
+        )
+
+        def func():
             parent_element = None
             if isinstance(parent_locator, str):
                 parent_element = self._element_find(parent_locator, True, False)
@@ -211,17 +268,27 @@ class _ElementKeywords(KeywordGroup):
                 parent_element = parent_locator
             if not parent_element:
                 parent_element = self._current_application()
+
             elements = self._element_finder.find(parent_element, child_locator, None)
-            if len(elements) > 0:
+            if elements:
                 self._info(f"Element exist: '{elements[0]}'")
                 return elements[0]
-            time.sleep(0.5)
-        raise Exception(f"Element '{child_locator}' in '{parent_locator}' does not exist within timeout of '{timeout}'")
+            raise Exception(f"Element '{child_locator}' in '{parent_locator}' not found yet")
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Get element '{child_locator}' in '{parent_locator}'",
+            required=True,
+            return_value=True,
+            poll_interval=0.5
+        )
 
     def appium_get_elements_in_element(self, parent_locator, child_locator, timeout=20):
-        self._info(f"Appium Get Elements In Element, child '{child_locator}', parent '{parent_locator}'")
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
+        self._info(
+            f"Appium Get Elements In Element, child '{child_locator}', parent '{parent_locator}', timeout {timeout}")
+
+        def func():
             parent_element = None
             if isinstance(parent_locator, str):
                 parent_element = self._element_find(parent_locator, True, False)
@@ -229,234 +296,245 @@ class _ElementKeywords(KeywordGroup):
                 parent_element = parent_locator
             if not parent_element:
                 parent_element = self._current_application()
+
             elements = self._element_finder.find(parent_element, child_locator, None)
-            if len(elements) > 0:
+            if elements:
                 self._info(f"Elements exist: '{elements}'")
                 return elements
-            time.sleep(0.5)
-        self._info(f"Element '{child_locator}' in '{parent_locator}' does not exist within timeout of '{timeout}'")
-        return []
+            raise Exception(f"Elements '{child_locator}' in '{parent_locator}' not found yet")
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Get elements '{child_locator}' in '{parent_locator}'",
+            required=False,
+            return_value=True,
+            poll_interval=0.5
+        ) or []
 
     def appium_find_element(self, locator, timeout=20, first_only=False):
         elements = self.appium_get_elements(locator=locator, timeout=timeout)
-        if not first_only:
-            return elements
-        if len(elements) == 0:
+        if first_only:
+            if elements:
+                return elements[0]
             self._info("Element not found, return None")
             return None
-        return elements[0]
+        return elements
 
     # TODO GET ELEMENT ATTRIBUTE
     def appium_get_element_attribute(self, locator, attribute, timeout=20):
         self._info(f"Appium Get Element Attribute '{attribute}' Of '{locator}', timeout '{timeout}'")
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
-            try:
-                att_value = self._element_find(locator, True, True).get_attribute(attribute)
-                if att_value:
-                    self._info(f"Attribute value: '{att_value}'")
-                    return att_value
-            except Exception:
-                pass
-            time.sleep(2)
-        self._info(f"Not found attribute '{attribute}' of '{locator}', return None")
-        return None
+
+        def func():
+            element = self._element_find(locator, True, True)
+            att_value = element.get_attribute(attribute)
+            if att_value is not None:
+                self._info(f"Attribute value: '{att_value}'")
+                return att_value
+            raise Exception(f"Attribute '{attribute}' of '{locator}' not found yet")
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Get attribute '{attribute}' of '{locator}'",
+            required=False,
+            return_value=True,
+            poll_interval=0.5
+        )
 
     def appium_get_element_attributes(self, locator, attribute, timeout=20):
         self._info(f"Appium Get Element Attributes '{attribute}' Of '{locator}', timeout '{timeout}'")
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
-            try:
-                elements = self._element_find(locator, False, True)
-                att_values = [element.get_attribute(attribute) for element in elements]
-                if any(att_values):
-                    self._info(f"Attributes value: '{att_values}'")
-                    return att_values
-            except Exception:
-                pass
-            time.sleep(2)
-        self._info(f"Not found attributes '{attribute}' of '{locator}', return []")
-        return []
+
+        def func():
+            elements = self._element_find(locator, False, True)
+            att_values = [element.get_attribute(attribute) for element in elements]
+            if any(att_values):
+                self._info(f"Attributes value: '{att_values}'")
+                return att_values
+            raise Exception(f"Attributes '{attribute}' of '{locator}' not found yet")
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Get attributes '{attribute}' of '{locator}'",
+            required=False,
+            return_value=True,
+            poll_interval=0.5
+        ) or []
 
     def appium_get_element_attributes_in_element(self, parent_locator, child_locator, attribute, timeout=20):
         self._info(
-            f"Appium Get Element Attributes In Element '{attribute}' Of '{child_locator}' In '{parent_locator}', timeout '{timeout}'")
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
-            try:
-                parent_element = None
-                if isinstance(parent_locator, str):
-                    parent_element = self._element_find(parent_locator, True, False)
-                elif isinstance(parent_locator, WebElement):
-                    parent_element = parent_locator
-                if not parent_element:
-                    parent_element = self._current_application()
-                elements = self._element_finder.find(parent_element, child_locator, None)
-                att_values = [element.get_attribute(attribute) for element in elements]
-                if any(att_values):
-                    self._info(f"Attributes value: '{att_values}'")
-                    return att_values
-            except Exception:
-                pass
-            time.sleep(2)
-        self._info(f"Not found attribute '{attribute}' of '{child_locator}' in '{parent_locator}', return []")
-        return []
+            f"Appium Get Element Attributes In Element '{attribute}' Of '{child_locator}' In '{parent_locator}', timeout '{timeout}'"
+        )
+
+        def func():
+            parent_element = None
+            if isinstance(parent_locator, str):
+                parent_element = self._element_find(parent_locator, True, False)
+            elif isinstance(parent_locator, WebElement):
+                parent_element = parent_locator
+            if not parent_element:
+                parent_element = self._current_application()
+
+            elements = self._element_finder.find(parent_element, child_locator, None)
+            att_values = [element.get_attribute(attribute) for element in elements]
+            if any(att_values):
+                self._info(f"Attributes value: '{att_values}'")
+                return att_values
+            raise Exception(f"Attributes '{attribute}' of '{child_locator}' in '{parent_locator}' not found yet")
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Get attributes '{attribute}' in element '{child_locator}' of '{parent_locator}'",
+            required=False,
+            return_value=True,
+            poll_interval=0.5
+        ) or []
 
     def appium_get_text(self, locator, first_only=True, timeout=20):
         self._info(f"Appium Get Text '{locator}', first_only '{first_only}', timeout '{timeout}'")
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
-            try:
-                if first_only:
-                    element = self._element_find(locator, True, True)
-                    text = element.text
+
+        def func():
+            if first_only:
+                element = self._element_find(locator, True, True)
+                text = element.text
+                if text is not None:
                     self._info(f"Text: '{text}'")
                     return text
-                else:
-                    elements = self._element_find(locator, False, True)
-                    text = [element.text for element in elements]
-                    if any(text):
-                        self._info(f"List Text: '{text}'")
-                        return text
-            except Exception:
-                pass
-            time.sleep(2)
-        self._info(f"Not found text '{locator}', return None")
-        return None
+            else:
+                elements = self._element_find(locator, False, True)
+                text_list = [element.text for element in elements if element.text is not None]
+                if text_list:
+                    self._info(f"List Text: '{text_list}'")
+                    return text_list
+            raise Exception(f"Text for '{locator}' not found yet")
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Get text from '{locator}'",
+            required=False,
+            return_value=True,
+            poll_interval=0.5
+        )
 
     # TODO CLICK ELEMENT
     def appium_click(self, locator, timeout=20, required=True):
         self._info(f"Appium Click '{locator}', timeout '{timeout}'")
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
-            try:
-                element = self._element_find(locator, True, True)
-                element.click()
-                time.sleep(0.5)
-                return True
-            except Exception:
-                pass
+
+        def func():
+            element = self._element_find(locator, True, True)
+            element.click()
             time.sleep(0.5)
-        if required:
-            raise Exception(f"Fail to perform click action on '{locator}'")
-        return False
+            return True
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Click element '{locator}'",
+            required=required,
+            return_value=True,
+            poll_interval=0.5
+        )
 
     def appium_click_text(self, text, exact_match=False, timeout=20):
         self._info(f"Appium Click Text '{text}', exact_match '{exact_match}', timeout '{timeout}'")
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
-            try:
-                element = self._element_find_by('Name', text, exact_match)
-                element.click()
-                time.sleep(0.5)
-                return
-            except Exception:
-                pass
+
+        def func():
+            element = self._element_find_by('Name', text, exact_match)
+            element.click()
             time.sleep(0.5)
-        raise Exception(f"Fail to perform click action on text '{text}'")
+            return True
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Click text '{text}'",
+            required=True,
+            return_value=True,
+            poll_interval=0.5
+        )
 
     def appium_click_button(self, index_or_name, timeout=20):
         self._info(f"Appium Click Button '{index_or_name}', timeout '{timeout}'")
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
-            try:
-                element = self._find_element_by_class_name('Button', index_or_name)
-                element.click()
-                time.sleep(0.5)
-                return
-            except Exception:
-                pass
+
+        def func():
+            element = self._find_element_by_class_name('Button', index_or_name)
+            element.click()
             time.sleep(0.5)
-        raise Exception(f"Fail to perform click action on button '{index_or_name}'")
+            return True
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Click button '{index_or_name}'",
+            required=True,
+            return_value=True,
+            poll_interval=0.5
+        )
 
     def appium_click_multiple_time(self, locator, repeat=1, timeout=20):
-        for _ in range(repeat):
-            self.appium_click(locator, timeout)
+        self._info(f"Appium Click '{locator}' {repeat} times, timeout '{timeout}'")
+
+        for i in range(repeat):
+            self._info(f"Click attempt {i + 1}/{repeat}")
+            self.appium_click(locator, timeout=timeout, required=True)
 
     def appium_click_if_exist(self, locator, timeout=2):
-        result = self.appium_click(locator, timeout, False)
+        self._info(f"Appium Click If Exist '{locator}', timeout '{timeout}'")
+        result = self.appium_click(locator, timeout=timeout, required=False)
         if not result:
-            self._info(f"Not found '{locator}', return False")
+            self._info(f"Element '{locator}' not found, return False")
         return result
 
-    def appium_hover(self, locator, start_locator=None, timeout=20, **kwargs):
-        self._info(f"Appium Hover '{locator}', timeout '{timeout}'")
-        self._appium_hover_api(start_locator=start_locator, end_locator=locator, timeout=timeout, **kwargs)
-
-    def appium_click_offset(self, locator, x_offset=0, y_offset=0, timeout=20, **kwargs):
-        self._info(
-            f"Appium Click Offset '{locator}', (x_offset,y_offset) '({x_offset},{y_offset})', timeout '{timeout}'")
-        self._appium_click_api(locator=locator, timeout=timeout, x_offset=x_offset, y_offset=y_offset, **kwargs)
-
-    def appium_right_click(self, locator, timeout=20, **kwargs):
-        self._info(f"Appium Right Click '{locator}', timeout '{timeout}'")
-        self._appium_click_api(locator=locator, timeout=timeout, button="right", **kwargs)
-
-    def appium_left_click(self, locator, timeout=20, **kwargs):
-        self._info(f"Appium Left Click '{locator}', timeout '{timeout}'")
-        self._appium_click_api(locator=locator, timeout=timeout, button="left", **kwargs)
-
-    def appium_double_click(self, locator, timeout=20, **kwargs):
-        self._info(f"Appium Double Click '{locator}', timeout '{timeout}'")
-        self._appium_click_api(locator=locator, timeout=timeout, times=2, **kwargs)
-
-    def appium_drag_and_drop(self, start_locator=None, end_locator=None, timeout=20, **kwargs):
-        self._info(f"Appium Drag And Drop '{start_locator} -> {end_locator}', timeout '{timeout}'")
-        self._appium_drag_and_drop_api(start_locator=start_locator, end_locator=end_locator, timeout=timeout, **kwargs)
-
-    def appium_drag_and_drop_by_offset(self, x_start, y_start, x_end, y_end):
-        x_start, y_start, x_end, y_end = (int(x) for x in [x_start, y_start, x_end, y_end])
-        self._info(f"Appium Drag And Drop By Offset ({x_start}, {y_start}) -> ({x_end}, {y_end})")
-        rect = self._current_application().get_window_rect()
-        x, y = rect['x'], rect['y']
-        x_start, y_start, x_end, y_end = x + x_start, y + y_start, x + x_end, y + y_end
-        self._info(f"Root rect: {rect}")
-        self.execute_script('windows: clickAndDrag', startX=x_start, startY=y_start, endX=x_end, endY=y_end)
-
     # TODO SEND KEYS TO ELEMENT
-    def appium_sendkeys(self, text=None, **kwargs):
-        self._info(f"Appium Sendkeys '{text}'")
-        self._appium_keys_api(text=text, **kwargs)
-
     def appium_input(self, locator, text, timeout=20, required=True):
-        self._info(f"Appium Input '{text}' to '{locator}', timeout '{timeout}'")
+        self._info(f"Appium Input '{text}' to '{locator}', timeout '{timeout}', required '{required}'")
+
         text = self._format_keys(text)
         locator = locator or "xpath=/*"
-        self._info(f"Text: {text}, Locator: {locator}")
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
-            try:
-                element = self._element_find(locator, True, True)
-                element.send_keys(text)
-                time.sleep(0.5)
-                return True
-            except Exception:
-                pass
-            time.sleep(2)
-        if required:
-            raise Exception(f"Fail to perform input action on '{locator}'")
-        return False
+        self._info(f"Formatted Text: '{text}', Locator: '{locator}'")
+
+        def func():
+            element = self._element_find(locator, True, True)
+            element.send_keys(text)
+            self._info(f"Input successful: '{text}' into '{locator}'")
+            return True
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Input '{text}' into '{locator}'",
+            required=required,
+            return_value=True,
+            poll_interval=0.5
+        )
 
     def appium_input_text(self, locator_text, text, exact_match=False, timeout=20):
         self._info(f"Appium Input Text '{text}' to '{locator_text}', exact_match '{exact_match}', timeout '{timeout}'")
         text = self._format_keys(text)
-        self._info(f"Text: {text}")
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
-            try:
-                element = self._element_find_by('Name', locator_text, exact_match)
-                element.send_keys(text)
-                time.sleep(0.5)
-                return
-            except Exception:
-                pass
-            time.sleep(2)
-        raise Exception(f"Fail to perform input action on text '{locator_text}'")
+        self._info(f"Formatted Text: '{text}'")
+
+        def func():
+            element = self._element_find_by('Name', locator_text, exact_match)
+            element.send_keys(text)
+            self._info(f"Input successful: '{text}' into element with text '{locator_text}'")
+            return True
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Input '{text}' into element with text '{locator_text}'",
+            required=True,
+            return_value=True,
+            poll_interval=0.5
+        )
 
     def appium_input_if_exist(self, locator, text, timeout=2):
-        result = self.appium_input(locator, text, timeout, False)
+        result = self.appium_input(locator, text, timeout=timeout, required=False)
         if not result:
-            self._info(f"Not found '{locator}', return False")
+            self._info(f"Element '{locator}' not found, skip input and return False")
         return result
 
     def appium_press_page_up(self, locator=None, press_time=1, timeout=5):
@@ -987,7 +1065,34 @@ class _ElementKeywords(KeywordGroup):
             timeout = self._bi.get_variable_value("${TIMEOUT}", "20")
         return time.time() + timestr_to_secs(timeout)
 
-    def _retry(self, timeout, func, *args) -> _RetryResult:
+    def _retry(
+            self,
+            timeout,
+            func,
+            action: str = "",
+            required: bool = True,
+            return_value: bool = False,
+            return_retry_result: bool = False,
+            poll_interval: float = 0.5
+    ):
+        """
+        Retry a function until it succeeds or the timeout is reached.
+
+        Args:
+            timeout (int|str): Maximum time to retry. Can be a number of seconds or a Robot Framework time string.
+            func (callable): The function to execute.
+            action (str): Description of the action for error messages.
+            required (bool): If True, raises TimeoutError on failure. If False, returns False or None.
+            return_value (bool): If True, returns the function result (even if None). If False, returns True on success.
+            return_retry_result (bool): If True, returns the full RetryResult object instead of just the result.
+            poll_interval (float): Seconds to wait between retry attempts (default 0.5s).
+
+        Returns:
+            The function result / True / False / None / RetryResult depending on flags.
+
+        Raises:
+            TimeoutError: If required=True and the function did not succeed within timeout.
+        """
         start = time.time()
         timeout = timeout or self._bi.get_variable_value("${TIMEOUT}", "20")
         maxtime = start + timestr_to_secs(timeout)
@@ -995,7 +1100,7 @@ class _ElementKeywords(KeywordGroup):
 
         while True:
             try:
-                rr.result = func(*args)
+                rr.result = func()
                 rr.executed = True
                 rr.last_exception = None
                 break
@@ -1006,17 +1111,14 @@ class _ElementKeywords(KeywordGroup):
                 rr.timeout = True
                 break
 
-            time.sleep(0.5)
+            time.sleep(poll_interval)
 
         rr.duration = time.time() - start
-        return rr
+        self._debug(f"_retry duration for action '{action}': {rr.duration:.2f}s")
 
-    def _handle_retry_result(self, rr, action: str, timeout: int, required: bool, return_value: bool = False):
-        """
-        Handle the result of a retry operation.
-        - return_value=False → treat as action (returns True/False)
-        - return_value=True  → treat as getter (returns actual value/None)
-        """
+        if return_retry_result:
+            return rr
+
         if rr.executed:
             return rr.result if return_value else True
 
@@ -1075,162 +1177,6 @@ class _ElementKeywords(KeywordGroup):
             return match.group(0)
 
         return re.sub(pattern, repl, text)
-
-    def _appium_click_api(self, locator, timeout, **kwargs):
-        """
-        https://github.com/appium/appium-windows-driver
-        https://github.com/appium/appium-windows-driver?tab=readme-ov-file#windows-click
-
-        @param locator:
-        @param timeout:
-        @param kwargs:
-
-        button: Name of the mouse button to be clicked. An exception is thrown if an unknown button name is provided.
-        Supported button names are: left, middle, right, back, forward. The default value is left
-
-        modifier_keys: List of possible keys or a single key name to depress while the click is being performed.
-        Supported key names are: Shift, Ctrl, Alt, Win. For example, in order to keep Ctrl+Alt depressed while clicking,
-        provide the value of ['ctrl', 'alt']
-
-        """
-        x_offset = int(kwargs.get("x_offset", 0))
-        y_offset = int(kwargs.get("y_offset", 0))
-        is_center = kwargs.get("is_center", False)
-        button = kwargs.get("button", "left")
-        modifier_keys = kwargs.get("modifierKeys", None)
-        duration_ms = int(kwargs.get("durationMs", 100))
-        times = int(kwargs.get("times", 1))
-        inter_click_delay_ms = int(kwargs.get("interClickDelayMs", 100))
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
-            try:
-                elements = self._element_find(locator, False, False)
-                if elements:
-                    rect = self._current_application().get_window_rect()
-                    e_rect = elements[0].rect
-                    x = x_offset + rect['x'] + e_rect['x']
-                    y = y_offset + rect['y'] + e_rect['y']
-                    if is_center:
-                        x = x + int(e_rect['width'] // 2)
-                        y = y + int(e_rect['height'] // 2)
-                    self._info(f"Element location: '({x},{y})'")
-                    self.execute_script("windows: click",
-                                        x=x,
-                                        y=y,
-                                        button=button,
-                                        modifierKeys=modifier_keys,
-                                        durationMs=duration_ms,
-                                        times=times,
-                                        interClickDelayMs=inter_click_delay_ms)
-                    time.sleep(0.5)
-                    return
-            except Exception:
-                pass
-            time.sleep(2)
-        raise Exception(f"Fail to perform click api action on '{locator}'")
-
-    def _appium_hover_api(self, start_locator, end_locator, timeout, **kwargs):
-        """
-        https://github.com/appium/appium-windows-driver?tab=readme-ov-file#windows-click
-        @param start_locator:
-        @param end_locator:
-        @param timeout:
-        @param kwargs:
-        @return:
-        """
-        start_element_id = str(kwargs.get("startElementId", ""))
-        startX = int(kwargs.get("startX", 0))
-        startY = int(kwargs.get("startY", 0))
-        end_element_id = str(kwargs.get("endElementId", ""))
-        endX = int(kwargs.get("endX", 0))
-        endY = int(kwargs.get("endY", 0))
-        modifier_keys = kwargs.get("modifierKeys", None)
-        duration_ms = int(kwargs.get("durationMs", 100))
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
-            try:
-                if start_locator:
-                    start_element = self._element_find(start_locator, True, False)
-                    if start_element:
-                        start_element_id = start_element.id
-                if end_locator:
-                    end_element = self._element_find(end_locator, True, False)
-                    if end_element:
-                        end_element_id = end_element.id
-                self.execute_script("windows: hover",
-                                    startElementId=start_element_id,
-                                    startX=startX,
-                                    startY=startY,
-                                    endElementId=end_element_id,
-                                    endX=endX,
-                                    endY=endY,
-                                    modifierKeys=modifier_keys,
-                                    durationMs=duration_ms)
-                time.sleep(0.5)
-                return
-            except Exception:
-                pass
-            time.sleep(2)
-        raise Exception(f"Fail to perform hover api action")
-
-    def _appium_drag_and_drop_api(self, start_locator, end_locator, timeout, **kwargs):
-        """
-        https://github.com/appium/appium-windows-driver?tab=readme-ov-file#windows-clickanddrag
-        @param start_locator:
-        @param end_locator:
-        @param timeout:
-        @param kwargs:
-        @return:
-        """
-        start_element_id = str(kwargs.get("startElementId", ""))
-        startX = int(kwargs.get("startX", 0))
-        startY = int(kwargs.get("startY", 0))
-        end_element_id = str(kwargs.get("endElementId", ""))
-        endX = int(kwargs.get("endX", 0))
-        endY = int(kwargs.get("endY", 0))
-        modifier_keys = kwargs.get("modifierKeys", None)
-        duration_ms = int(kwargs.get("durationMs", 5000))
-        maxtime = self._get_maxtime(timeout)
-        while time.time() < maxtime:
-            try:
-                if start_locator:
-                    start_element = self._element_find(start_locator, True, False)
-                    if start_element:
-                        start_element_id = start_element.id
-                if end_locator:
-                    end_element = self._element_find(end_locator, True, False)
-                    if end_element:
-                        end_element_id = end_element.id
-                self.execute_script("windows: clickAndDrag",
-                                    startElementId=start_element_id,
-                                    startX=startX,
-                                    startY=startY,
-                                    endElementId=end_element_id,
-                                    endX=endX,
-                                    endY=endY,
-                                    modifierKeys=modifier_keys,
-                                    durationMs=duration_ms)
-                time.sleep(0.5)
-                return
-            except Exception:
-                pass
-            time.sleep(2)
-        raise Exception(f"Fail to perform drag and drop api action")
-
-    def _appium_keys_api(self, text, **kwargs):
-        """
-        https://github.com/appium/appium-windows-driver?tab=readme-ov-file#windows-keys
-        @param text:
-        @param kwargs:
-        @return:
-        """
-        actions = kwargs.get("actions", "")
-        # pause = int(kwargs.get("pause", 0))
-        # virtual_key_code = int(kwargs.get("virtualKeyCode", 0))
-        # down = bool(kwargs.get("down", False))
-        if not actions:
-            actions = [{"text": text}]
-        self.execute_script("windows: keys", actions=actions)
 
     def _element_input_text_by_locator(self, locator, text):
         try:

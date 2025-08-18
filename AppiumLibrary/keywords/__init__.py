@@ -8,11 +8,13 @@ from ._runonfailure import _RunOnFailureKeywords
 from ._screenrecord import _ScreenrecordKeywords
 from ._screenshot import _ScreenshotKeywords
 from ._waiting import _WaitingKeywords
+from ._windows import _WindowsKeywords
 
 __all__ = ["_LoggingKeywords",
            "_RunOnFailureKeywords",
            "_ElementKeywords",
            "_PowershellKeywords",
+           "_WindowsKeywords",
            "_ScreenshotKeywords",
            "_ApplicationManagementKeywords",
            "_WaitingKeywords",

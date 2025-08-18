@@ -30,7 +30,7 @@ It allows you to automate Windows desktop applications using **Robot Framework**
 Install the Robot Framework library:
 
 ```bash
-pip install robotframework-appium-windows
+pip install robotframework-appiumwindows
 ```
 
 > This is the only requirement on the machine where you run Robot Framework tests.  

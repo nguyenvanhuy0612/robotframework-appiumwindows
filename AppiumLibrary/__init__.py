@@ -11,6 +11,7 @@ class AppiumLibrary(
     _LoggingKeywords,
     _RunOnFailureKeywords,
     _ElementKeywords,
+    _WindowsKeywords,
     _PowershellKeywords,
     _ScreenshotKeywords,
     _ApplicationManagementKeywords,
