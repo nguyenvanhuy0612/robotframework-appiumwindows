@@ -1,0 +1,4 @@
+robotframework>=7.3.2
+Appium-Python-Client>=5.1.2
+decorator>=5.2.1
+six>=1.17.0
