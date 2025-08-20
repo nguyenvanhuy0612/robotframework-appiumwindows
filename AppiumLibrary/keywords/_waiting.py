@@ -154,7 +154,7 @@ class _WaitingKeywords(KeywordGroup):
             if not timeout_error:
                 return
             if time.time() > maxtime:
-                self.log_source()
+                self._invoke_original("log_source")
                 raise AssertionError(timeout_error)
             time.sleep(self._sleep_between_wait)
 

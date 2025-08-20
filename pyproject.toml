@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "robotframework-appium-windows"
+name = "robotframework-appiumwindows"
 version = "0.1.2"
 description = "Robot Framework AppiumLibrary extension for Windows desktop automation using NovaWindows Driver instead of WinAppDriver."
 authors = [
@@ -14,9 +14,7 @@ license = { text = "MIT" }
 requires-python = ">=3.10"
 dependencies = [
   "robotframework>=7.3.2",
-  "Appium-Python-Client>=5.1.1",
-  "decorator>=5.2.1",
-  "six>=1.17.0"
+  "Appium-Python-Client>=5.1.1"
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -35,6 +33,6 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/nguyenvanhuy0612/robotframework-appium-windows"
-Repository = "https://github.com/nguyenvanhuy0612/robotframework-appium-windows"
-Issues = "https://github.com/nguyenvanhuy0612/robotframework-appium-windows/issues"
+Homepage = "https://github.com/nguyenvanhuy0612/robotframework-appiumwindows"
+Repository = "https://github.com/nguyenvanhuy0612/robotframework-appiumwindows"
+Issues = "https://github.com/nguyenvanhuy0612/robotframework-appiumwindows/issues"

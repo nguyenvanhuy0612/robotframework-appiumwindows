@@ -5,7 +5,7 @@ from base64 import b64decode
 
 import robot
 
-from .keywordgroup import KeywordGroup
+from .keywordgroup import KeywordGroup, ignore_on_fail
 
 
 class _ScreenshotKeywords(KeywordGroup):
@@ -30,7 +30,7 @@ class _ScreenshotKeywords(KeywordGroup):
         >>> driver.get_screenshot_as_file("/Screenshots/foo.png")
         """
 
-        element = self.appium_get_element(locator, timeout, False)
+        element = self._invoke_original("appium_get_element", locator, timeout, False)
 
         if not element:
             self._info(f'Not found {locator}, return None')
@@ -56,12 +56,13 @@ class _ScreenshotKeywords(KeywordGroup):
 
         return base64data
 
+    @ignore_on_fail
     def appium_get_screenshot(self):
-        return self.appium_capture_page_screenshot(None, False)
+        return self._invoke_original("appium_capture_page_screenshot", None, False)
 
     def appium_capture_page_screenshot(self, filename=None, embed=True):
         try:
-            return self.capture_page_screenshot(filename, embed)
+            return self._invoke_original("capture_page_screenshot", filename, embed)
         except Exception as err:
             self._info(err)
         return None

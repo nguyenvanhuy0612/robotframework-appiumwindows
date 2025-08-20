@@ -42,8 +42,8 @@ class _ElementKeywords(KeywordGroup):
     def set_search_context(self, locator, timeout=20):
         """Find and store the parent element."""
         if locator:
-            self.clear_search_context()
-            self._context = self.appium_get_element(locator, timeout)
+            self._invoke_original("clear_search_context")
+            self._context = self._invoke_original("appium_get_element", locator, timeout)
             self._context_locator = locator
         return self._context
 
@@ -313,7 +313,7 @@ class _ElementKeywords(KeywordGroup):
         ) or []
 
     def appium_find_element(self, locator, timeout=20, first_only=False):
-        elements = self.appium_get_elements(locator=locator, timeout=timeout)
+        elements = self._invoke_original("appium_get_elements", locator=locator, timeout=timeout)
         if first_only:
             if elements:
                 return elements[0]
@@ -479,11 +479,11 @@ class _ElementKeywords(KeywordGroup):
 
         for i in range(repeat):
             self._info(f"Click attempt {i + 1}/{repeat}")
-            self.appium_click(locator, timeout=timeout, required=True)
+            self._invoke_original("appium_click", locator, timeout=timeout, required=True)
 
     def appium_click_if_exist(self, locator, timeout=2):
         self._info(f"Appium Click If Exist '{locator}', timeout '{timeout}'")
-        result = self.appium_click(locator, timeout=timeout, required=False)
+        result = self._invoke_original("appium_click", locator, timeout=timeout, required=False)
         if not result:
             self._info(f"Element '{locator}' not found, return False")
         return result
@@ -532,30 +532,30 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_input_if_exist(self, locator, text, timeout=2):
-        result = self.appium_input(locator, text, timeout=timeout, required=False)
+        result = self._invoke_original("appium_input", locator, text, timeout=timeout, required=False)
         if not result:
             self._info(f"Element '{locator}' not found, skip input and return False")
         return result
 
     def appium_press_page_up(self, locator=None, press_time=1, timeout=5):
         self._info(f"Appium Press Page Up {locator}, ")
-        self.appium_input(locator, "{PAGE_UP}" * press_time, timeout)
+        self._invoke_original("appium_input", locator, "{PAGE_UP}" * press_time, timeout)
 
     def appium_press_page_down(self, locator=None, press_time=1, timeout=5):
         self._info(f"Appium Press Page Down {locator}, ")
-        self.appium_input(locator, "{PAGE_DOWN}" * press_time, timeout)
+        self._invoke_original("appium_input", locator, "{PAGE_DOWN}" * press_time, timeout)
 
     def appium_press_home(self, locator=None, press_time=1, timeout=5):
         self._info(f"Appium Press Home {locator}, ")
-        self.appium_input(locator, "{HOME}" * press_time, timeout)
+        self._invoke_original("appium_input", locator, "{HOME}" * press_time, timeout)
 
     def appium_press_end(self, locator=None, press_time=1, timeout=5):
         self._info(f"Appium Press End {locator}, ")
-        self.appium_input(locator, "{END}" * press_time, timeout)
+        self._invoke_original("appium_input", locator, "{END}" * press_time, timeout)
 
     def appium_clear_all_text(self, locator, timeout=5):
         self._info(f"Appium Clear All Text {locator}")
-        self.appium_input(locator, "{CONTROL}a{DELETE}", timeout)
+        self._invoke_original("appium_input", locator, "{CONTROL}a{DELETE}", timeout)
 
     # TODO old method
     def clear_text(self, locator):
@@ -645,7 +645,7 @@ class _ElementKeywords(KeywordGroup):
         Giving `NONE` as level disables logging.
         """
         if not self._is_text_present(text):
-            self.log_source(loglevel)
+            self._invoke_original("log_source", loglevel)
             raise AssertionError("Page should have contained text '%s' "
                                  "but did not" % text)
         self._info("Current page contains text '%s'." % text)
@@ -658,7 +658,7 @@ class _ElementKeywords(KeywordGroup):
         Giving `NONE` as level disables logging.
         """
         if self._is_text_present(text):
-            self.log_source(loglevel)
+            self._invoke_original("log_source", loglevel)
             raise AssertionError("Page should not have contained text '%s'" % text)
         self._info("Current page does not contains text '%s'." % text)
 
@@ -670,7 +670,7 @@ class _ElementKeywords(KeywordGroup):
         Giving `NONE` as level disables logging.
         """
         if not self._is_element_present(locator):
-            self.log_source(loglevel)
+            self._invoke_original("log_source", loglevel)
             raise AssertionError("Page should have contained element '%s' "
                                  "but did not" % locator)
         self._info("Current page contains element '%s'." % locator)
@@ -683,7 +683,7 @@ class _ElementKeywords(KeywordGroup):
         Giving `NONE` as level disables logging.
         """
         if self._is_element_present(locator):
-            self.log_source(loglevel)
+            self._invoke_original("log_source", loglevel)
             raise AssertionError("Page should not have contained element '%s'" % locator)
         self._info("Current page not contains element '%s'." % locator)
 
@@ -694,7 +694,7 @@ class _ElementKeywords(KeywordGroup):
         `introduction` for details about locating elements.
         """
         if self._element_find(locator, True, True).is_enabled():
-            self.log_source(loglevel)
+            self._invoke_original("log_source", loglevel)
             raise AssertionError("Element '%s' should be disabled "
                                  "but did not" % locator)
         self._info("Element '%s' is disabled ." % locator)
@@ -706,7 +706,7 @@ class _ElementKeywords(KeywordGroup):
         `introduction` for details about locating elements.
         """
         if not self._element_find(locator, True, True).is_enabled():
-            self.log_source(loglevel)
+            self._invoke_original("log_source", loglevel)
             raise AssertionError("Element '%s' should be enabled "
                                  "but did not" % locator)
         self._info("Element '%s' is enabled ." % locator)
@@ -720,7 +720,7 @@ class _ElementKeywords(KeywordGroup):
         New in AppiumLibrary 1.4.5
         """
         if not self._element_find(locator, True, True).is_displayed():
-            self.log_source(loglevel)
+            self._invoke_original("log_source", loglevel)
             raise AssertionError("Element '%s' should be visible "
                                  "but did not" % locator)
 
@@ -900,8 +900,8 @@ class _ElementKeywords(KeywordGroup):
         return element
 
     def get_webelement_in_webelement(self, element, locator):
-        """ 
-        Returns a single [http://selenium-python.readthedocs.io/api.html#module-selenium.webdriver.remote.webelement|WebElement] 
+        """
+        Returns a single [http://selenium-python.readthedocs.io/api.html#module-selenium.webdriver.remote.webelement|WebElement]
         objects matching ``locator`` that is a child of argument element.
 
         This is useful when your HTML doesn't properly have id or name elements on all elements.
@@ -1028,7 +1028,7 @@ class _ElementKeywords(KeywordGroup):
         New in AppiumLibrary 1.4.5
         """
         if not self._element_find_by_text(text, exact_match).is_displayed():
-            self.log_source(loglevel)
+            self._invoke_original("log_source", loglevel)
             raise AssertionError("Text '%s' should be visible "
                                  "but did not" % text)
 
@@ -1053,7 +1053,7 @@ class _ElementKeywords(KeywordGroup):
             if not error:
                 error = "Xpath %s should have matched %s times but matched %s times" \
                         % (xpath, count, actual_xpath_count)
-            self.log_source(loglevel)
+            self._invoke_original("log_source", loglevel)
             raise AssertionError(error)
         self._info("Current page contains %s elements matching '%s'."
                    % (actual_xpath_count, xpath))
@@ -1135,7 +1135,7 @@ class _ElementKeywords(KeywordGroup):
             # Refresh context, then retry
             if self._context_locator is None:
                 raise Exception("No context locator stored. Call set_search_context() first.")
-            self._context = self.appium_get_element(self._context_locator, 5)
+            self._context = self._invoke_original("appium_get_element", self._context_locator, 5)
             return self._element_finder.find(self._context, locator, tag)
 
     def _element_find(self, locator, first_only, required, tag=None):
@@ -1266,7 +1266,7 @@ class _ElementKeywords(KeywordGroup):
 
     def _is_text_present(self, text):
         text_norm = normalize('NFD', text)
-        source_norm = normalize('NFD', self.get_source())
+        source_norm = normalize('NFD', self._invoke_original("get_source"))
         return text_norm in source_norm
 
     def _is_element_present(self, locator):

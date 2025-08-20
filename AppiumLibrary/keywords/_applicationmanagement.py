@@ -35,7 +35,7 @@ class _ApplicationManagementKeywords(KeywordGroup):
         self._cache.close_all(ignore_fail, quit_app)
 
     def appium_save_source(self, file_path='file_source.txt'):
-        page_source = self.get_source()
+        page_source = self._invoke_original("get_source")
         with open(file_path, 'w', encoding='utf-8') as file:
             file.write(page_source)
 
@@ -79,7 +79,7 @@ class _ApplicationManagementKeywords(KeywordGroup):
         self._info('Opened application with session id %s' % application.session_id)
 
         if hasattr(self, "clear_search_context"):
-            self.clear_search_context()
+            self._invoke_original("clear_search_context")
 
         return self._cache.register(application, alias)
 
@@ -187,7 +187,7 @@ class _ApplicationManagementKeywords(KeywordGroup):
         | Open page that loads slowly |
         | Set Appium Timeout | ${orig timeout} |
         """
-        old_timeout = self.get_appium_timeout()
+        old_timeout = self._invoke_original("get_appium_timeout")
         self._timeout_in_secs = robot.utils.timestr_to_secs(seconds)
         return old_timeout
 
