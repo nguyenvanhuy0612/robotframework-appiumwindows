@@ -13,7 +13,7 @@ from selenium.webdriver.remote.webelement import WebElement
 from unicodedata import normalize
 
 from AppiumLibrary.locators import ElementFinder
-from .keywordgroup import KeywordGroup
+from .keywordgroup import KeywordGroup, ignore_on_fail
 
 
 @dataclass
@@ -29,31 +29,69 @@ class _ElementKeywords(KeywordGroup):
     def __init__(self):
         self._element_finder = ElementFinder()
         self._bi = BuiltIn()
-        self._context = None
-        self._context_locator = None
+        self._context = {}
 
     # Context
-
-    def get_search_context(self, include_locator=False):
-        if include_locator:
-            return self._context, self._context_locator
+    def appium_get_context(self):
         return self._context
 
-    def set_search_context(self, locator, timeout=20):
-        """Find and store the parent element."""
-        if locator:
-            self._invoke_original("clear_search_context")
-            self._context = self._invoke_original("appium_get_element", locator, timeout)
-            self._context_locator = locator
-        return self._context
+    def appium_set_context(self, context, reference=None, timeout=20):
+        old_context = self._context
+        self._context = {}
 
-    def clear_search_context(self):
+        if isinstance(context, str):
+            self._context['element'] = self._find_context(context, reference, timeout)
+            self._context['locator'] = context
+        if isinstance(context, WebElement):
+            self._context['element'] = context
+            self._info(f"WARNING!!! Reference use as locator: {reference}")
+            self._context['locator'] = reference
+        elif isinstance(context, dict) and context.get('locator'):
+            self._info(f"Context: {context}")
+            self._context['element'] = self._find_context(context['locator'], reference, timeout)
+            self._context['locator'] = context['locator']
+
+        if not self._context.get('element'):
+            self._info("WARNING!!! Search Context Empty")
+            self._context = {}
+
+        return old_context
+
+    def _find_context(self, locator, reference=None, timeout=20, ref_timeout=5):
+        elements = self._invoke_original("appium_get_elements", locator, timeout)
+        if not elements:
+            raise Exception(f"No elements found for locator '{locator}'")
+
+        element = None
+
+        # Numeric reference (int or str)
+        if isinstance(reference, int) or (isinstance(reference, str) and reference.isnumeric()):
+            idx = int(reference)
+            if not (0 <= idx < len(elements)):
+                raise Exception(f"Reference index {idx} out of range for locator '{locator}'")
+            element = elements[idx]
+
+        # String sub-locator
+        elif isinstance(reference, str):
+            for el in elements:
+                if self._invoke_original("appium_get_elements_in_element", el, reference, ref_timeout):
+                    element = el
+                    break
+
+        # Default - first element
+        else:
+            element = elements[0]
+
+        if not element:
+            raise Exception(f"Not found context '{locator}' with reference '{reference}'")
+
+        return element
+
+    def appium_clear_context(self):
         """Clear stored context."""
-        self._context = None
-        self._context_locator = None
+        self._context = {}
 
     # Public, element lookups
-
     # TODO CHECK ELEMENT
     def appium_element_exist(self, locator, timeout=20):
         self._info(f"Appium Element Exist '{locator}', timeout {timeout}")
@@ -135,7 +173,7 @@ class _ElementKeywords(KeywordGroup):
             poll_interval=0.5
         )
 
-    def appium_first_found_elements(self, *locators, timeout=20):
+    def appium_first_found_elements(self, *locators, timeout=20, include_element=False):
         self._info(f"Appium First Found Elements '{locators}', timeout {timeout}")
 
         def func():
@@ -143,7 +181,7 @@ class _ElementKeywords(KeywordGroup):
                 elements = self._element_find(locator, False, False)
                 if elements:
                     self._info(f"Element '{locator}' exist, return {index}")
-                    return index
+                    return (index, elements[0]) if include_element else index
             raise Exception(f"None of the elements {locators} found yet")
 
         return self._retry(
@@ -480,6 +518,33 @@ class _ElementKeywords(KeywordGroup):
         for i in range(repeat):
             self._info(f"Click attempt {i + 1}/{repeat}")
             self._invoke_original("appium_click", locator, timeout=timeout, required=True)
+
+    def appium_click_until(self, locators: list, timeout=20, handle_error=True):
+        self._info(f"Appium Click Until '{locators}', timeout '{timeout}'")
+
+        def func():
+            found_any = False
+            for index, locator in enumerate(locators):
+                try:
+                    elements = self._element_find(locator, False, False)
+                    if elements:
+                        found_any = True
+                        elements[0].click()
+                except Exception as exc:
+                    if not handle_error:
+                        return exc
+            if not found_any:
+                self._debug(f"Exit click {locators}")
+                return
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Appium Click Until No Found {locators}",
+            required=False,
+            return_value=True,
+            poll_interval=0.5
+        )
 
     def appium_click_if_exist(self, locator, timeout=2):
         self._info(f"Appium Click If Exist '{locator}', timeout '{timeout}'")
@@ -1163,8 +1228,11 @@ class _ElementKeywords(KeywordGroup):
         return elements
 
     def _format_keys(self, text):
-        # Refer to selenium\webdriver\common\keys.py
-        # text = 123qwe{BACKSPACE 3}{TAB}{ENTER}
+        """
+        selenium/webdriver/common/keys.py
+        @param text: eg: 123qwe{BACKSPACE 3}{TAB}{ENTER}
+        @return:
+        """
         pattern = r"\{(\w+)(?: (\d+))?\}"
 
         def repl(match):

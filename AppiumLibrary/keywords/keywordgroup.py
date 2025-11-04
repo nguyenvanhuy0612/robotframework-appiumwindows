@@ -2,18 +2,12 @@
 import inspect
 import functools
 
-# Internal/private marker attribute names
-_RUN_ON_FAILURE_ATTR = "__rof_wrapped__"
-_IGNORE_RUN_FAILURE_ATTR = "__rof_ignore__"
-_ORIGINAL_METHOD_ATTR = "__original__"
+# Internal/private marker attribute
+_ROF_STATE_ATTR = "__rof_processed__"
 
 
 def _run_on_failure_decorator(method):
     """Decorator to wrap keyword methods with _run_on_failure support."""
-    if getattr(method, _RUN_ON_FAILURE_ATTR, False):
-        # Already decorated → skip re-wrapping
-        return method
-
     @functools.wraps(method)
     def wrapper(*args, **kwargs):
         try:
@@ -24,14 +18,12 @@ def _run_on_failure_decorator(method):
                 self._run_on_failure()
             raise
 
-    setattr(wrapper, _RUN_ON_FAILURE_ATTR, True)      # mark as decorated
-    setattr(wrapper, _ORIGINAL_METHOD_ATTR, method)   # keep reference to original
     return wrapper
 
 
 def ignore_on_fail(method):
     """Decorator to mark methods that should never be wrapped by run_on_failure."""
-    setattr(method, _IGNORE_RUN_FAILURE_ATTR, True)
+    setattr(method, _ROF_STATE_ATTR, True)
     return method
 
 
@@ -41,8 +33,7 @@ class KeywordGroupMetaClass(type):
             if (
                 not name.startswith('_')
                 and inspect.isfunction(method)
-                and not getattr(method, _IGNORE_RUN_FAILURE_ATTR, False)
-                and not getattr(method, _RUN_ON_FAILURE_ATTR, False)
+                and not getattr(method, _ROF_STATE_ATTR, False)
             ):
                 attrs[name] = _run_on_failure_decorator(method)
         return super().__new__(cls, clsname, bases, attrs)
@@ -50,21 +41,37 @@ class KeywordGroupMetaClass(type):
 
 class KeywordGroup(metaclass=KeywordGroupMetaClass):
 
-    def _invoke_original(self, method, *args, **kwargs):
+    def _get_original(self, method_or_name):
         """
-        Call the original (undecorated) implementation of a method.
+        Get the original (undecorated) method object.
 
-        Accepts either:
-          - method name (str), e.g. self._invoke_original("click", el)
-          - bound method itself, e.g. self._invoke_original(self.click, el)
-
-        Falls back to the current method if undecorated.
-        Returns None if method not found at all.
+        :param method_or_name: function object or method name (str)
+        :return: original method (callable)
+        :raises AttributeError: if method name not found
+        :raises TypeError: if input is neither str nor callable
         """
-        if isinstance(method, str):
-            method = getattr(self, method, None)
-        if method is None:
-            return None
+        if isinstance(method_or_name, str):
+            method = getattr(self.__class__, method_or_name, None)
+            if method is None:
+                raise AttributeError(f"Method '{method_or_name}' not found on {self.__class__.__name__}")
+        elif callable(method_or_name):
+            method = method_or_name
+        else:
+            raise TypeError(
+                f"Expected method name (str) or callable, got {type(method_or_name).__name__}"
+            )
 
-        original = getattr(method, _ORIGINAL_METHOD_ATTR, method)
+        return getattr(method, '__wrapped__', method)
+
+    def _invoke_original(self, method_or_name, *args, **kwargs):
+        """
+        Invoke the original (undecorated) implementation of a method.
+
+        :param method_or_name: function object or method name (str)
+        :param args: positional arguments
+        :param kwargs: keyword arguments
+        :return: result of calling the original method
+        :raises AttributeError, TypeError: if method lookup fails
+        """
+        original = self._get_original(method_or_name)
         return original(self, *args, **kwargs)

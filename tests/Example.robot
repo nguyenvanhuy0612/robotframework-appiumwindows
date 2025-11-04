@@ -14,7 +14,7 @@ Type To Notepad
 *** Keywords ***
 Open Root Session
     ${parameters}    Create Dictionary
-    ...    remote_url=http://192.168.196.158:4723
+    ...    remote_url=http://172.16.10.37:4723
     ...    platformName=Windows
     ...    appium:app=Root
     ...    appium:automationName=NovaWindows
