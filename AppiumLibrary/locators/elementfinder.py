@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
+import fnmatch
+import re
 
-from AppiumLibrary import utils
 from appium.webdriver.common.appiumby import AppiumBy
 from robot.api import logger
+
+from AppiumLibrary import utils
 
 
 class ElementFinder(object):
@@ -26,6 +29,65 @@ class ElementFinder(object):
             'chain': self._find_by_chain,
             'default': self._find_by_default
         }
+        self._alias_map = {
+            "name": "Name",
+            "class": "ClassName"
+        }
+
+    def find_extra(self, application, locator):
+        """
+        Find elements using a primary locator string plus optional
+        attribute-based extra filters.
+
+        Behavior:
+            1. The input `locator` may contain:
+                  - A standard locator string (e.g. "xpath=//button")
+                  - Additional attribute-matching patterns:
+                        name=submit*
+                        class.lower=btn-primary
+                        id.regex=^btn_[0-9]+$
+
+            2. The locator is normalized using `_normalize_locator()`, which returns:
+                  {
+                      "locator": "<standard locator string>",
+                      "extra": [ "<pattern1>", "<pattern2>", ... ]
+                  }
+
+            3. All elements matching the primary locator are retrieved via `find()`.
+
+            4. The extra patterns are applied using `_match_extra()`, requiring
+               **all** attribute rules to match (AND logic).
+
+        Parameters:
+            application  -- application/session handle used by `find()`
+            locator      -- a compound locator string interpreted by
+                            `_normalize_locator()`
+
+        Returns:
+            List of elements that match:
+                - the primary locator AND
+                - every pattern in the `extra` rules.
+
+        Example:
+            locator = "xpath=//button | name.lower=submit | class=*btn*"
+
+            Steps:
+              - normalize → locator="xpath=//button"
+                            extra=["name.lower=submit", "class=*btn*"]
+              - find()    → returns all buttons
+              - filters   → keeps only buttons whose:
+                                name.lower == "submit"
+                                and class matches "*btn*"
+
+            result = find_extra(app, locator)
+        """
+        standard_locator = self._normalize_locator(locator)
+        locator_str = standard_locator["locator"]
+        extras = standard_locator.get("extra", [])
+
+        all_elements = self.find(application, locator_str)
+
+        return [el for el in all_elements if self._match_extra(el, extras)]
 
     def find(self, application, locator, tag=None):
         assert application is not None
@@ -262,3 +324,134 @@ class ElementFinder(object):
             logger.debug("WebDriver find returned %s" % elements)
             return []
         return elements
+
+    def _normalize_locator(self, raw_locator):
+        """
+        Normalize locator input into standard form:
+        {
+            "locator": "<strategy>=<value>",
+            "extra": [<extra filters>]
+        }
+        """
+        if isinstance(raw_locator, str):
+            return {"locator": raw_locator, "extra": []}
+
+        if isinstance(raw_locator, dict):
+            locator = raw_locator.get("locator")
+            extra = raw_locator.get("extra")
+
+            if isinstance(extra, str):
+                extra = [extra]
+            elif extra is None:
+                extra = []
+            elif not isinstance(extra, list):
+                raise TypeError(f"Invalid 'extra' type: {type(extra)}")
+
+            if not locator:
+                raise ValueError(f"Invalid locator: {locator}")
+
+            return {"locator": locator, "extra": extra}
+
+        raise TypeError(f"Unsupported locator type: {type(raw_locator)}")
+
+    def _match_pattern(self, element, pattern: str) -> bool:
+        """
+        Match a single element attribute against a pattern rule.
+
+        Pattern formats:
+            - exact:     name=abc
+            - glob:      name=*abc*        (default mode)
+                          name=a?c
+            - regex:     name.regex=^abc[0-9]+$
+            - case mods: name.lower=abc    (case-insensitive compare)
+
+        Notes:
+            - If pattern does not specify mode (e.g. "name=abc"),
+              the default mode is **glob**.
+            - Supports shorthand attributes:
+                  "name"  -> "Name"
+                  "class" -> "ClassName"
+                  (via alias map: self._alias_map)
+            - If the element attribute value is None → returns False.
+            - Regex uses re.fullmatch().
+
+        Examples:
+            "text=Hello"             → glob match
+            "text.exact=Hello"       → exact match
+            "id.regex=^btn_[0-9]+$"  → regex match
+            "name.lower=submit"      → lowercase comparison
+        """
+        if element is None:
+            return False
+
+        if "=" not in pattern:
+            return False
+
+        raw_key, expected = pattern.split("=", 1)
+        raw_key, expected = raw_key.strip(), expected.strip()
+
+        # extract mode
+        if "." in raw_key:
+            key, mode = raw_key.split(".", 1)
+            mode = mode.lower()
+        else:
+            key = raw_key
+            mode = "glob"  # default mode
+
+        # alias: name -> Name, class -> ClassName, etc.
+        key_mapped = self._alias_map.get(key.lower(), key)
+
+        # retrieve element attribute
+        value = element.get_attribute(key_mapped)
+        if value is None:
+            return False
+
+        # perform match
+        if mode == "exact":
+            return value == expected
+
+        elif mode == "lower":
+            return value.lower() == expected.lower()
+
+        elif mode == "glob":
+            return fnmatch.fnmatch(value, expected)
+
+        elif mode == "regex":
+            return re.fullmatch(expected, value or "") is not None
+
+        return False
+
+    def _match_extra(self, element, extra) -> bool:
+        """
+        Check whether an element satisfies **all** extra attribute rules.
+
+        This function applies AND logic:
+            - Every pattern in `extra` must match for the element to pass.
+            - Each pattern is evaluated by `_match_pattern()`.
+
+        Parameters:
+            element -- the WebElement-like object
+            extra   -- list of pattern strings:
+                           ["name=submit*", "class.lower=btn-primary", "id.regex=^btn_[0-9]+$"]
+
+        Returns:
+            True  if all patterns match,
+            False if any pattern fails.
+
+        Example:
+            extra = [
+                "name.lower=submit",
+                "class.glob=*primary*",
+                "id.regex=^btn_[0-9]+$"
+            ]
+
+            _match_extra(element, extra) → True only if all conditions are satisfied.
+        """
+        if not extra:
+            return True
+
+        for pattern in extra:
+            if not self._match_pattern(element, pattern):
+                return False
+
+        return True
