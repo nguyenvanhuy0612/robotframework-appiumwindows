@@ -1,16 +1,16 @@
 import time
-from typing import Tuple
+from typing import Callable, Tuple, Any, Optional, Union
 
 from appium.webdriver import WebElement as AppiumElement
 from robot.libraries.BuiltIn import BuiltIn
 from robot.utils import timestr_to_secs
-from selenium.common import WebDriverException
+from selenium.common import WebDriverException, TimeoutException
 
 from AppiumLibrary.locators import ElementFinder
 from .keywordgroup import KeywordGroup
 
 
-class _ElementKeywordsAppium(KeywordGroup):
+class _ElementAppiumKeywords(KeywordGroup):
     def __init__(self):
         self._element_finder = ElementFinder()
         self._bi = BuiltIn()
@@ -113,28 +113,50 @@ class _ElementKeywordsAppium(KeywordGroup):
         def _func():
             pass
 
-        r, e = self._until(locator, 10, _func)
+        r, e = self._until(10, _func)
         return r
 
-    def _until(self, locator, timeout, func, allow_none=False, excepts=WebDriverException) -> Tuple:
-        end_time = time.time() + timestr_to_secs(timeout)
+    def _until(
+            self,
+            timeout: Union[str, int, float],
+            func: Callable[[], Any],
+            allow_none: bool = False,
+            excepts=WebDriverException,
+            delay: float = 0.5,
+    ) -> Tuple[Any, Optional[Exception]]:
+        """
+        Repeatedly executes `func` until:
+          - it returns a non-None value, OR
+          - allow_none=True, OR
+          - timeout occurs.
 
-        while True:
+        Returns:
+            (result, last_exception)
+        """
+
+        end_time = time.time() + timestr_to_secs(timeout)
+        last_exception = None
+
+        while time.time() < end_time:
             try:
                 result = func()
 
-                if result is not None:
-                    return result, None
-
-                if allow_none:
-                    return None, None
-            except excepts as e:
-                last_exception = f"'{locator}' Exception: {e}"
-            else:
                 last_exception = None
 
-            if time.time() > end_time:
-                break
-            time.sleep(0.5)
+                if result is not None:
+                    return result, last_exception
+
+                if result is None and allow_none:
+                    return result, last_exception
+
+            except excepts as e:
+                last_exception = e
+
+            time.sleep(delay)
+
+        # If no exception recorded, produce a timeout exception
+        if last_exception is None:
+            last_exception = TimeoutException(f"Timed out after {timeout}")
 
         return None, last_exception
+

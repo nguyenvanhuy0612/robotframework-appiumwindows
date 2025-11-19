@@ -29,10 +29,6 @@ class ElementFinder(object):
             'chain': self._find_by_chain,
             'default': self._find_by_default
         }
-        self._alias_map = {
-            "name": "Name",
-            "class": "ClassName"
-        }
 
     def find_extra(self, application, locator):
         """
@@ -82,7 +78,7 @@ class ElementFinder(object):
             result = find_extra(app, locator)
         """
         standard_locator = self._normalize_locator(locator)
-        locator_str = standard_locator["locator"]
+        locator_str = standard_locator.get("locator")
         extras = standard_locator.get("extra", [])
 
         all_elements = self.find(application, locator_str)
@@ -399,10 +395,10 @@ class ElementFinder(object):
             mode = "glob"  # default mode
 
         # alias: name -> Name, class -> ClassName, etc.
-        key_mapped = self._alias_map.get(key.lower(), key)
+        key = key.replace('name', 'Name').replace('class', 'ClassName')
 
         # retrieve element attribute
-        value = element.get_attribute(key_mapped)
+        value = element.get_attribute(key)
         if value is None:
             return False
 

@@ -1204,14 +1204,11 @@ class _ElementKeywords(KeywordGroup):
             return self._element_finder.find(self._context, locator, tag)
 
     def _element_find(self, locator, first_only, required, tag=None):
-        application = self._current_application()
+        application = self._context.get('element') or self._current_application()
         elements = None
         if isinstance(locator, str):
             _locator = locator
-            if self._context:
-                elements = self._context_finder(_locator, tag)
-            else:
-                elements = self._element_finder.find(application, _locator, tag)
+            elements = self._element_finder.find(application, _locator, tag)
             if required and len(elements) == 0:
                 raise ValueError("Element locator '" + locator + "' did not match any elements.")
             if first_only:
