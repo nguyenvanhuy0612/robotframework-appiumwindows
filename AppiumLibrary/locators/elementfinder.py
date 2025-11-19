@@ -30,7 +30,7 @@ class ElementFinder(object):
             'default': self._find_by_default
         }
 
-    def find_extra(self, application, locator):
+    def find_extra(self, application, locator, tag=None):
         """
         Find elements using a primary locator string plus optional
         attribute-based extra filters.
@@ -81,7 +81,7 @@ class ElementFinder(object):
         locator_str = standard_locator.get("locator")
         extras = standard_locator.get("extra", [])
 
-        all_elements = self.find(application, locator_str)
+        all_elements = self.find(application, locator_str, tag)
 
         return [el for el in all_elements if self._match_extra(el, extras)]
 

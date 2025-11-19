@@ -116,6 +116,27 @@ class _ElementAppiumKeywords(KeywordGroup):
         r, e = self._until(10, _func)
         return r
 
+    def _element_find_extra(self, locator, first_only, required, tag=None):
+        application = self._context.get('element') or self._current_application()
+        elements = None
+        if isinstance(locator, str):
+            _locator = locator
+            elements = self._element_finder.find_extra(application, _locator, tag)
+            if required and len(elements) == 0:
+                raise ValueError("Element locator '" + locator + "' did not match any elements.")
+            if first_only:
+                if len(elements) == 0:
+                    return None
+                return elements[0]
+        elif isinstance(locator, AppiumElement):
+            if first_only:
+                return locator
+            else:
+                elements = [locator]
+        # do some other stuff here like deal with list of webelements
+        # ... or raise locator/element specific error if required
+        return elements
+
     def _until(
             self,
             timeout: Union[str, int, float],
