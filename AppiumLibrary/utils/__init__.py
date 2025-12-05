@@ -4,6 +4,7 @@ from pathlib import Path
 from robot.utils import abspath
 
 from .applicationcache import ApplicationCache
+from .element_helper import find_extra, until
 
 
 def escape_xpath_value(value):
