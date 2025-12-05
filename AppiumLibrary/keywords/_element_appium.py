@@ -10,6 +10,10 @@ from AppiumLibrary.locators import ElementFinder
 from AppiumLibrary.utils import find_extra, until
 from .keywordgroup import KeywordGroup
 
+# Default constants for element operations
+DEFAULT_TIMEOUT = 10
+DEFAULT_POLL_INTERVAL = 0.5
+
 
 class _ElementAppiumKeywords(KeywordGroup):
     """Keywords for finding and interacting with elements in Appium tests.
@@ -127,7 +131,7 @@ class _ElementAppiumKeywords(KeywordGroup):
         self._context = {}
         return old_context
 
-    def appium_element_exist(self, locator, timeout=10) -> bool:
+    def appium_element_exist(self, locator, timeout=DEFAULT_TIMEOUT) -> bool:
         """Check if element exists within timeout period.
 
         Args:
@@ -159,7 +163,7 @@ class _ElementAppiumKeywords(KeywordGroup):
         elements = find_extra(application, self._element_finder, locator)
         return elements
 
-    def appium_elements_exist(self, locator, timeout=10) -> list | bool:
+    def appium_elements_exist(self, locator, timeout=DEFAULT_TIMEOUT) -> list | bool:
         """Check if elements exist and return them.
 
         Args:
@@ -178,7 +182,7 @@ class _ElementAppiumKeywords(KeywordGroup):
         result, _ = until(timeout, func)
         return result if result is not None else False
 
-    def appium_wait_element_visible(self, locator, timeout=10) -> AppiumElement | bool:
+    def appium_wait_element_visible(self, locator, timeout=DEFAULT_TIMEOUT) -> AppiumElement | bool:
         """Wait until element becomes visible.
 
         Args:
@@ -197,7 +201,7 @@ class _ElementAppiumKeywords(KeywordGroup):
         result, _ = until(timeout, func)
         return result if result is not None else False
 
-    def appium_wait_element_not_visible(self, locator, timeout=10) -> bool:
+    def appium_wait_element_not_visible(self, locator, timeout=DEFAULT_TIMEOUT) -> bool:
         """Wait until element is not visible.
 
         Args:
@@ -223,7 +227,7 @@ class _ElementAppiumKeywords(KeywordGroup):
         result, _ = until(timeout, func)
         return result is not None
 
-    def appium_element_should_be_visible(self, locator, timeout=10) -> bool:
+    def appium_element_should_be_visible(self, locator, timeout=DEFAULT_TIMEOUT) -> bool:
         """Assert that element is visible.
 
         Args:
@@ -247,7 +251,7 @@ class _ElementAppiumKeywords(KeywordGroup):
             raise Exception(f"Element '{locator}' should be visible but is not within {timeout}s")
         return True
 
-    def appium_element_should_be_not_visible(self, locator, timeout=10) -> bool:
+    def appium_element_should_be_not_visible(self, locator, timeout=DEFAULT_TIMEOUT) -> bool:
         """Assert that element is not visible.
 
         Args:
@@ -271,7 +275,7 @@ class _ElementAppiumKeywords(KeywordGroup):
             raise Exception(f"Element '{locator}' should not be visible but is within {timeout}s")
         return True
 
-    def appium_first_found_element(self, *locators, timeout=10, include_element=False) -> int | AppiumElement:
+    def appium_first_found_element(self, *locators, timeout=DEFAULT_TIMEOUT, include_element=False) -> int | AppiumElement:
         """Find the first element from multiple locators.
 
         Args:
@@ -295,7 +299,7 @@ class _ElementAppiumKeywords(KeywordGroup):
             return result
         return (-1, None) if include_element else -1
 
-    def appium_get_element(self, locator, timeout=10, required=True) -> AppiumElement:
+    def appium_get_element(self, locator, timeout=DEFAULT_TIMEOUT, required=True) -> AppiumElement:
         """Get a single element.
 
         Args:
@@ -320,7 +324,7 @@ class _ElementAppiumKeywords(KeywordGroup):
             raise Exception(f"Element '{locator}' not found within {timeout}s")
         return result
 
-    def appium_get_elements(self, locator, timeout=10) -> list:
+    def appium_get_elements(self, locator, timeout=DEFAULT_TIMEOUT) -> list:
         """Get multiple elements.
 
         Args:
@@ -338,97 +342,3 @@ class _ElementAppiumKeywords(KeywordGroup):
 
         result, _ = until(timeout, func)
         return result if result is not None else []
-
-    def _appium(self, locator, condition='exist', **kwargs):
-        """Internal helper method for element operations.
-
-        Args:
-            locator: Element locator string
-            condition: Type of condition to check ('exist', etc.)
-            **kwargs: Additional keyword arguments
-
-        Returns:
-            Result of the operation
-        """
-        def _func():
-            if condition == 'exist':
-                return self._appium_get(locator)
-            # Add other conditions as needed
-            return None
-
-        r, e = self._until(10, _func)
-        return r
-
-    def _element_find_extra(self, locator, first_only, required, tag=None):
-        """Find elements with extra filtering options.
-
-        Args:
-            locator: Element locator (string or WebElement)
-            first_only: If True, return only first element
-            required: If True, raise error if no elements found
-            tag: Optional tag filter
-
-        Returns:
-            Single element if first_only=True, list otherwise
-        """
-        application = self._context.get('element') or self._current_application()
-        elements = None
-        if isinstance(locator, str):
-            _locator = locator
-            elements = self._element_finder.find_extra(application, _locator, tag)
-            if required and len(elements) == 0:
-                raise ValueError(f"Element locator '{locator}' did not match any elements.")
-            if first_only:
-                if len(elements) == 0:
-                    return None
-                return elements[0]
-        elif isinstance(locator, AppiumElement):
-            if first_only:
-                return locator
-            else:
-                elements = [locator]
-        return elements
-
-    def _until(
-            self,
-            timeout: Union[str, int, float],
-            func: Callable[[], Any],
-            allow_none: bool = False,
-            excepts=WebDriverException,
-            delay: float = 0.5,
-    ) -> Tuple[Any, Optional[Exception]]:
-        """
-        Repeatedly executes `func` until:
-          - it returns a non-None value, OR
-          - allow_none=True, OR
-          - timeout occurs.
-
-        Returns:
-            (result, last_exception)
-        """
-
-        end_time = time.time() + timestr_to_secs(timeout)
-        last_exception = None
-
-        while time.time() < end_time:
-            try:
-                result = func()
-
-                last_exception = None
-
-                if result is not None:
-                    return result, last_exception
-
-                if result is None and allow_none:
-                    return result, last_exception
-
-            except excepts as e:
-                last_exception = e
-
-            time.sleep(delay)
-
-        # If no exception recorded, produce a timeout exception
-        if last_exception is None:
-            last_exception = f"Timed out after {timeout}"
-
-        return None, last_exception

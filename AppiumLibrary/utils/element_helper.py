@@ -1,34 +1,68 @@
 import time
-from typing import Callable, Tuple, Any, Optional, Union
+from typing import Callable, Tuple, Any, Optional, Union, Type
 
 from appium.webdriver import WebElement
 from robot.utils import timestr_to_secs
 from selenium.common import WebDriverException, TimeoutException
 
 
-def find_extra(application, element_finder, locator, first_only=False, required=False, tag=None):
-    # Resolve elements from locator
+def find_extra(
+    application,
+    element_finder,
+    locator: Union[str, WebElement],
+    first_only: bool = False,
+    required: bool = False,
+    tag: Optional[str] = None
+) -> Optional[Union[WebElement, list]]:
+    """Find elements using enhanced locator with extra filtering options.
+
+    Args:
+        application: Application/driver instance
+        element_finder: Element finder instance
+        locator: Element locator (string or WebElement)
+        first_only: Return only first element if True
+        required: Raise error if no elements found
+        tag: Optional tag filter
+
+    Returns:
+        Single element if first_only=True, list otherwise, None if no elements and first_only=True
+
+    Raises:
+        TypeError: If locator type is unsupported
+        ValueError: If required=True and no elements found
+    """
+    # Validate required parameters
+    if application is None:
+        raise ValueError("Application instance cannot be None. Provide a valid WebDriver instance.")
+    if element_finder is None:
+        raise ValueError("Element finder cannot be None. Provide a valid ElementFinder instance.")
+    if locator is None:
+        raise ValueError("Locator cannot be None. Provide a valid locator string or WebElement.")
+
+    # Resolve elements based on locator type
     if isinstance(locator, str):
-        elements = element_finder.find_extra(application, locator, tag) or []
+        found_elements = element_finder.find_extra(application, locator, tag) or []
     elif isinstance(locator, WebElement):
-        elements = [locator]
+        found_elements = [locator]
     else:
-        raise TypeError(f"Unsupported locator type: {type(locator)}")
+        raise TypeError(
+            f"Unsupported locator type: {type(locator).__name__}. "
+            f"Expected str (locator string) or WebElement instance."
+        )
 
-    # If required → must have at least 1 element
-    if required and not elements:
-        raise ValueError(f"Element locator '{locator}' did not match any elements.")
+    # Handle required constraint
+    if required and not found_elements:
+        raise ValueError(
+            f"Required element not found. Locator '{locator}' did not match any elements. "
+            f"Consider checking the locator syntax or increasing timeout."
+        )
 
-    # If no elements and not required → early return
-    if not elements:
+    # Handle empty results
+    if not found_elements:
         return None if first_only else []
 
-    # first_only=True → return single element
-    if first_only:
-        return elements[0]
-
-    # Otherwise return full list
-    return elements
+    # Return appropriate result based on first_only flag
+    return found_elements[0] if first_only else found_elements
 
 
 def until(
@@ -36,49 +70,75 @@ def until(
     func: Callable[..., Any],
     *args,
     allow_none: bool = False,
-    excepts=WebDriverException,
+    excepts: Type[Exception] = WebDriverException,
     delay: float = 0.5,
     **kwargs
 ) -> Tuple[Any, Optional[Exception]]:
-    """
-    Repeatedly executes `func` until:
-      • it returns a non-None value, OR
-      • allow_none=True (returns even if result is None), OR
-      • timeout expires.
+    """Repeatedly execute a function until it succeeds or timeout occurs.
+
+    This function provides robust retry logic with configurable timeout,
+    exception handling, and delay between attempts.
+
+    Args:
+        timeout: Maximum time to wait (seconds or Robot Framework time string)
+        func: Function to execute
+        *args: Positional arguments for func
+        allow_none: If True, return immediately when func returns None
+        excepts: Exception type(s) to catch and retry on
+        delay: Seconds to wait between attempts
+        **kwargs: Keyword arguments for func
 
     Returns:
-        (result, last_exception)
+        Tuple of (result, last_exception). If successful, last_exception is None.
+        If timeout occurs, result is None and last_exception contains the error.
+
+    Raises:
+        No exceptions are raised - all are caught and returned as last_exception
     """
+    # Validate inputs
+    if delay < 0:
+        raise ValueError(f"Delay must be non-negative, got {delay}. Use 0 for no delay between attempts.")
 
-    end_time = time.time() + timestr_to_secs(timeout)
-    last_exception: Optional[Exception] = None
+    # Convert timeout to seconds and validate
+    timeout_seconds = timestr_to_secs(timeout)
+    if timeout_seconds <= 0:
+        raise ValueError(f"Timeout must be positive, got {timeout_seconds}. Provide a valid timeout value.")
 
-    while True:
+    end_time = time.time() + timeout_seconds
+    last_captured_exception: Optional[Exception] = None
+
+    while time.time() < end_time:
         try:
             result = func(*args, **kwargs)
-            last_exception = None  # reset last error on successful call
 
-            # Case 1: success (non-None)
+            # Reset exception on successful call
+            last_captured_exception = None
+
+            # Handle successful non-None result
             if result is not None:
                 return result, None
 
-            # Case 2: result=None but allow_none=True means return immediately
+            # Handle None result with allow_none=True
             if allow_none:
                 return None, None
 
         except excepts as exc:
-            last_exception = exc
+            last_captured_exception = exc
 
-        # Timeout check *after* performing operation
-        if time.time() >= end_time:
+        # Calculate remaining time to avoid oversleeping
+        remaining_time = end_time - time.time()
+        if remaining_time <= 0:
             break
 
-        time.sleep(delay)
+        # Sleep for the minimum of delay and remaining time
+        sleep_time = min(delay, remaining_time)
+        time.sleep(sleep_time)
 
-    # Timeout reached ---------------------------------------------------------
-    # If no exception occurred during attempts, create one
-    if last_exception is None:
-        last_exception = TimeoutException(f"Timed out after {timeout}")
+    # Timeout reached - create appropriate exception if none occurred
+    if last_captured_exception is None:
+        last_captured_exception = TimeoutException(
+            f"Operation timed out after {timeout_seconds:.1f} seconds. "
+            f"Consider increasing timeout or checking locator/application state."
+        )
 
-    # Returning None means: timeout OR last call returned None (when !allow_none)
-    return None, last_exception
+    return None, last_captured_exception
