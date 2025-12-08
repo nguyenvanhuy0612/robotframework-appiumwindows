@@ -72,8 +72,11 @@ def until(
     allow_none: bool = False,
     excepts: Type[Exception] = WebDriverException,
     delay: float = 0.5,
+    required: bool = True,
+    default: Any = None,
+    return_exception: bool = False,
     **kwargs
-) -> Tuple[Any, Optional[Exception]]:
+) -> Any:
     """Repeatedly execute a function until it succeeds or timeout occurs.
 
     This function provides robust retry logic with configurable timeout,
@@ -86,14 +89,17 @@ def until(
         allow_none: If True, return immediately when func returns None
         excepts: Exception type(s) to catch and retry on
         delay: Seconds to wait between attempts
+        required: If True, raise exception on failure.
+        default: Value to return if failed and not required.
+        return_exception: If True and required=False, return the exception instead of default.
         **kwargs: Keyword arguments for func
 
     Returns:
-        Tuple of (result, last_exception). If successful, last_exception is None.
-        If timeout occurs, result is None and last_exception contains the error.
+        Function result or default value.
 
     Raises:
-        No exceptions are raised - all are caught and returned as last_exception
+        TimeoutException: If required=True and timeout occurs
+        Exception: If required=True and last retry failed with exception
     """
     # Validate inputs
     if delay < 0:
@@ -116,11 +122,11 @@ def until(
 
             # Handle successful non-None result
             if result is not None:
-                return result, None
+                return result
 
             # Handle None result with allow_none=True
             if allow_none:
-                return None, None
+                return None
 
         except excepts as exc:
             last_captured_exception = exc
@@ -134,11 +140,16 @@ def until(
         sleep_time = min(delay, remaining_time)
         time.sleep(sleep_time)
 
-    # Timeout reached - create appropriate exception if none occurred
-    if last_captured_exception is None:
-        last_captured_exception = TimeoutException(
+    # Timeout reached or last attempt failed
+    if required:
+        if last_captured_exception:
+            raise last_captured_exception
+        raise TimeoutException(
             f"Operation timed out after {timeout_seconds:.1f} seconds. "
             f"Consider increasing timeout or checking locator/application state."
         )
 
-    return None, last_captured_exception
+    if return_exception:
+        return last_captured_exception
+
+    return default

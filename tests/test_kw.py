@@ -15,6 +15,7 @@ driver = webdriver.Remote(command_executor=remote_url, options=options)
 print(driver.page_source)
 
 el = driver.find_element(AppiumBy.XPATH, "/*")
+print(el.text)
 
 
 time.sleep(5)
