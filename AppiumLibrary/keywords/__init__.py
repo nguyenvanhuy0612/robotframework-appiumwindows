@@ -2,6 +2,7 @@
 
 from ._applicationmanagement import _ApplicationManagementKeywords
 from ._element import _ElementKeywords
+from ._element_appium import _ElementAppiumKeywords
 from ._logging import _LoggingKeywords
 from ._powershell import _PowershellKeywords
 from ._runonfailure import _RunOnFailureKeywords
@@ -13,6 +14,7 @@ from ._windows import _WindowsKeywords
 __all__ = ["_LoggingKeywords",
            "_RunOnFailureKeywords",
            "_ElementKeywords",
+           "_ElementAppiumKeywords",
            "_PowershellKeywords",
            "_WindowsKeywords",
            "_ScreenshotKeywords",
