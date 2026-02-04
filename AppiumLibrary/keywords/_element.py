@@ -16,46 +16,82 @@ from AppiumLibrary.locators import ElementFinder
 from .keywordgroup import KeywordGroup
 
 
-@dataclass
-class _RetryResult:
-    result: Any = None
-    executed: bool = False
-    last_exception: Optional[Exception] = None
-    timeout: bool = False
-    duration: float = 0.0
-
-
 class _ElementKeywords(KeywordGroup):
     def __init__(self):
         self._element_finder = ElementFinder()
         self._bi = BuiltIn()
-        self._context = None
-        self._context_locator = None
+        self._context = {}
 
     # Context
-
-    def get_search_context(self, include_locator=False):
-        if include_locator:
-            return self._context, self._context_locator
+    def get_search_context(self):
         return self._context
 
-    def set_search_context(self, locator, timeout=20):
+    def set_search_context(self, context, reference=None, timeout=None):
         """Find and store the parent element."""
-        if locator:
-            self._invoke_original("clear_search_context")
-            self._context = self._invoke_original("appium_get_element", locator, timeout)
-            self._context_locator = locator
-        return self._context
+        old_context = self._context
+        self._context = {}
+        # default timeout if None
+        timeout = timeout or 20
+
+        if isinstance(context, str):
+            self._context['element'] = self._find_context(context, reference, timeout, timeout)
+            self._context['locator'] = context
+        elif isinstance(context, WebElement):
+            self._context['element'] = context
+            self._info(f"WARNING!!! Reference use as locator: {reference}")
+            self._context['locator'] = reference
+        elif isinstance(context, dict) and context.get('locator'):
+            self._info(f"Context: {context}")
+            self._context['element'] = self._find_context(context['locator'], reference, timeout, timeout)
+            self._context['locator'] = context['locator']
+
+        if not self._context.get('element'):
+            self._info("WARNING!!! Search Context Empty")
+            self._context = {}
+
+        return old_context
+
+    def _find_context(self, locator, reference=None, timeout=20, ref_timeout=5):
+        elements = self.appium_get_elements(locator, timeout)
+        if not elements:
+            raise Exception(f"No elements found for locator '{locator}'")
+
+        element = None
+
+        # Numeric reference (int or str)
+        if isinstance(reference, int) or (isinstance(reference, str) and reference.isnumeric()):
+            idx = int(reference)
+            if not (0 <= idx < len(elements)):
+                raise Exception(f"Reference index {idx} out of range for locator '{locator}'")
+            element = elements[idx]
+
+        # String sub-locator
+        elif isinstance(reference, str):
+            for el in elements:
+                # Use appium_get_elements_in_element logic, but we need to be careful with timeout
+                if self.appium_get_elements_in_element(el, reference, ref_timeout):
+                    element = el
+                    break
+
+        # Default - first element
+        else:
+            element = elements[0]
+
+        if not element:
+            raise Exception(f"Not found context '{locator}' with reference '{reference}'")
+
+        return element
 
     def clear_search_context(self):
         """Clear stored context."""
-        self._context = None
-        self._context_locator = None
+        old_context = self._context
+        self._context = {}
+        return old_context
 
     # Public, element lookups
 
     # TODO CHECK ELEMENT
-    def appium_element_exist(self, locator, timeout=20):
+    def appium_element_exist(self, locator, timeout=None):
         self._info(f"Appium Element Exist '{locator}', timeout {timeout}")
 
         def func():
@@ -70,10 +106,10 @@ class _ElementKeywords(KeywordGroup):
             func,
             action=f"Check existence of '{locator}'",
             required=False,
-            poll_interval=0.5
+            poll_interval=None
         )
 
-    def appium_wait_until_element_is_visible(self, locator, timeout=20):
+    def appium_wait_until_element_is_visible(self, locator, timeout=None):
         self._info(f"Appium Wait Until Element Is Visible '{locator}', timeout {timeout}")
 
         def func():
@@ -88,10 +124,10 @@ class _ElementKeywords(KeywordGroup):
             func,
             action=f"Wait until element '{locator}' is visible",
             required=False,
-            poll_interval=0.5
+            poll_interval=None
         )
 
-    def appium_wait_until_element_is_not_visible(self, locator, timeout=20):
+    def appium_wait_until_element_is_not_visible(self, locator, timeout=None):
         self._info(f"Appium Wait Until Element Is Not Visible '{locator}', timeout {timeout}")
 
         def func():
@@ -114,10 +150,10 @@ class _ElementKeywords(KeywordGroup):
             func,
             action=f"Wait until element '{locator}' is not visible",
             required=False,
-            poll_interval=0.5
+            poll_interval=None
         )
 
-    def appium_element_should_be_visible(self, locator, timeout=20):
+    def appium_element_should_be_visible(self, locator, timeout=None):
         self._info(f"Appium Element Should Be Visible '{locator}', timeout {timeout}")
 
         def func():
@@ -132,10 +168,10 @@ class _ElementKeywords(KeywordGroup):
             func,
             action=f"Assert element '{locator}' is visible",
             required=True,
-            poll_interval=0.5
+            poll_interval=None
         )
 
-    def appium_first_found_elements(self, *locators, timeout=20):
+    def appium_first_found_elements(self, *locators, timeout=None):
         self._info(f"Appium First Found Elements '{locators}', timeout {timeout}")
 
         def func():
@@ -152,11 +188,11 @@ class _ElementKeywords(KeywordGroup):
             action=f"Find first existing element from {locators}",
             required=False,
             return_value=True,
-            poll_interval=0.5
+            poll_interval=None
         ) or -1
 
     # TODO FIND ELEMENT
-    def appium_get_element(self, locator, timeout=20, required=True):
+    def appium_get_element(self, locator, timeout=None, required=True):
         self._info(f"Appium Get Element '{locator}', timeout '{timeout}', required '{required}'")
 
         def func():
@@ -172,10 +208,10 @@ class _ElementKeywords(KeywordGroup):
             action=f"Get element '{locator}'",
             required=required,
             return_value=True,
-            poll_interval=0.5
+            poll_interval=None
         )
 
-    def appium_get_elements(self, locator, timeout=20):
+    def appium_get_elements(self, locator, timeout=None):
         self._info(f"Appium Get Elements '{locator}', timeout {timeout}")
 
         def func():
@@ -191,10 +227,10 @@ class _ElementKeywords(KeywordGroup):
             action=f"Get elements '{locator}'",
             required=False,
             return_value=True,
-            poll_interval=0.5
+            poll_interval=None
         ) or []
 
-    def appium_get_button_element(self, index_or_name, timeout=20, required=True):
+    def appium_get_button_element(self, index_or_name, timeout=None, required=True):
         self._info(f"Appium Get Button Element '{index_or_name}', timeout '{timeout}', required '{required}'")
 
         def func():
@@ -210,13 +246,11 @@ class _ElementKeywords(KeywordGroup):
             action=f"Get button element '{index_or_name}'",
             required=required,
             return_value=True,
-            poll_interval=0.5
+            poll_interval=None
         )
 
-    def appium_get_element_text(self, text, exact_match=False, timeout=20, required=True):
-        self._info(
-            f"Appium Get Element Text '{text}', exact_match '{exact_match}', timeout '{timeout}', required '{required}'"
-        )
+    def appium_get_element_text(self, text, exact_match=False, timeout=None, required=True):
+        self._info(f"Appium Get Element Text '{text}', exact_match '{exact_match}', timeout '{timeout}', required '{required}'")
 
         def func():
             element = self._element_find_by('Name', text, exact_match)
@@ -231,13 +265,11 @@ class _ElementKeywords(KeywordGroup):
             action=f"Get element text '{text}'",
             required=required,
             return_value=True,
-            poll_interval=0.5
+            poll_interval=None
         )
 
-    def appium_get_element_by(self, key='*', value='', exact_match=False, timeout=20, required=True):
-        self._info(
-            f"Appium Get Element By '{key}={value}', exact_match '{exact_match}', timeout '{timeout}', required '{required}'"
-        )
+    def appium_get_element_by(self, key='*', value='', exact_match=False, timeout=None, required=True):
+        self._info(f"Appium Get Element By '{key}={value}', exact_match '{exact_match}', timeout '{timeout}', required '{required}'")
 
         def func():
             element = self._element_find_by(key, value, exact_match)
@@ -252,13 +284,11 @@ class _ElementKeywords(KeywordGroup):
             action=f"Get element by '{key}={value}'",
             required=required,
             return_value=True,
-            poll_interval=0.5
+            poll_interval=None
         )
 
-    def appium_get_element_in_element(self, parent_locator, child_locator, timeout=20):
-        self._info(
-            f"Appium Get Element In Element, child '{child_locator}', parent '{parent_locator}', timeout {timeout}"
-        )
+    def appium_get_element_in_element(self, parent_locator, child_locator, timeout=None):
+        self._info(f"Appium Get Element In Element, child '{child_locator}', parent '{parent_locator}', timeout {timeout}")
 
         def func():
             parent_element = None
@@ -281,12 +311,11 @@ class _ElementKeywords(KeywordGroup):
             action=f"Get element '{child_locator}' in '{parent_locator}'",
             required=True,
             return_value=True,
-            poll_interval=0.5
+            poll_interval=None
         )
 
-    def appium_get_elements_in_element(self, parent_locator, child_locator, timeout=20):
-        self._info(
-            f"Appium Get Elements In Element, child '{child_locator}', parent '{parent_locator}', timeout {timeout}")
+    def appium_get_elements_in_element(self, parent_locator, child_locator, timeout=None):
+        self._info(f"Appium Get Elements In Element, child '{child_locator}', parent '{parent_locator}', timeout {timeout}")
 
         def func():
             parent_element = None
@@ -309,11 +338,11 @@ class _ElementKeywords(KeywordGroup):
             action=f"Get elements '{child_locator}' in '{parent_locator}'",
             required=False,
             return_value=True,
-            poll_interval=0.5
+            poll_interval=None
         ) or []
 
-    def appium_find_element(self, locator, timeout=20, first_only=False):
-        elements = self._invoke_original("appium_get_elements", locator=locator, timeout=timeout)
+    def appium_find_element(self, locator, timeout=None, first_only=False):
+        elements = self.appium_get_elements(locator=locator, timeout=timeout)
         if first_only:
             if elements:
                 return elements[0]
@@ -322,7 +351,7 @@ class _ElementKeywords(KeywordGroup):
         return elements
 
     # TODO GET ELEMENT ATTRIBUTE
-    def appium_get_element_attribute(self, locator, attribute, timeout=20):
+    def appium_get_element_attribute(self, locator, attribute, timeout=None):
         self._info(f"Appium Get Element Attribute '{attribute}' Of '{locator}', timeout '{timeout}'")
 
         def func():
@@ -339,10 +368,10 @@ class _ElementKeywords(KeywordGroup):
             action=f"Get attribute '{attribute}' of '{locator}'",
             required=False,
             return_value=True,
-            poll_interval=0.5
+            poll_interval=None
         )
 
-    def appium_get_element_attributes(self, locator, attribute, timeout=20):
+    def appium_get_element_attributes(self, locator, attribute, timeout=None):
         self._info(f"Appium Get Element Attributes '{attribute}' Of '{locator}', timeout '{timeout}'")
 
         def func():
@@ -359,13 +388,11 @@ class _ElementKeywords(KeywordGroup):
             action=f"Get attributes '{attribute}' of '{locator}'",
             required=False,
             return_value=True,
-            poll_interval=0.5
+            poll_interval=None
         ) or []
 
-    def appium_get_element_attributes_in_element(self, parent_locator, child_locator, attribute, timeout=20):
-        self._info(
-            f"Appium Get Element Attributes In Element '{attribute}' Of '{child_locator}' In '{parent_locator}', timeout '{timeout}'"
-        )
+    def appium_get_element_attributes_in_element(self, parent_locator, child_locator, attribute, timeout=None):
+        self._info(f"Appium Get Element Attributes In Element '{attribute}' Of '{child_locator}' In '{parent_locator}', timeout '{timeout}'")
 
         def func():
             parent_element = None
@@ -389,10 +416,10 @@ class _ElementKeywords(KeywordGroup):
             action=f"Get attributes '{attribute}' in element '{child_locator}' of '{parent_locator}'",
             required=False,
             return_value=True,
-            poll_interval=0.5
+            poll_interval=None
         ) or []
 
-    def appium_get_text(self, locator, first_only=True, timeout=20):
+    def appium_get_text(self, locator, first_only=True, timeout=None):
         self._info(f"Appium Get Text '{locator}', first_only '{first_only}', timeout '{timeout}'")
 
         def func():
@@ -416,11 +443,11 @@ class _ElementKeywords(KeywordGroup):
             action=f"Get text from '{locator}'",
             required=False,
             return_value=True,
-            poll_interval=0.5
+            poll_interval=None
         )
 
     # TODO CLICK ELEMENT
-    def appium_click(self, locator, timeout=20, required=True):
+    def appium_click(self, locator, timeout=None, required=True):
         self._info(f"Appium Click '{locator}', timeout '{timeout}'")
 
         def func():
@@ -435,11 +462,11 @@ class _ElementKeywords(KeywordGroup):
             action=f"Click element '{locator}'",
             required=required,
             return_value=True,
-            poll_interval=0.5
+            poll_interval=None
         )
 
-    def appium_click_text(self, text, exact_match=False, timeout=20):
-        self._info(f"Appium Click Text '{text}', exact_match '{exact_match}', timeout '{timeout}'")
+    def appium_click_text(self, text, exact_match=False, timeout=None, required=True):
+        self._info(f"Appium Click Text '{text}', exact_match '{exact_match}', timeout '{timeout}', required '{required}'")
 
         def func():
             element = self._element_find_by('Name', text, exact_match)
@@ -451,13 +478,13 @@ class _ElementKeywords(KeywordGroup):
             timeout,
             func,
             action=f"Click text '{text}'",
-            required=True,
+            required=required,
             return_value=True,
-            poll_interval=0.5
+            poll_interval=None
         )
 
-    def appium_click_button(self, index_or_name, timeout=20):
-        self._info(f"Appium Click Button '{index_or_name}', timeout '{timeout}'")
+    def appium_click_button(self, index_or_name, timeout=None, required=True):
+        self._info(f"Appium Click Button '{index_or_name}', timeout '{timeout}', required '{required}'")
 
         def func():
             element = self._find_element_by_class_name('Button', index_or_name)
@@ -469,27 +496,27 @@ class _ElementKeywords(KeywordGroup):
             timeout,
             func,
             action=f"Click button '{index_or_name}'",
-            required=True,
+            required=required,
             return_value=True,
-            poll_interval=0.5
+            poll_interval=None
         )
 
-    def appium_click_multiple_time(self, locator, repeat=1, timeout=20):
+    def appium_click_multiple_time(self, locator, repeat=1, timeout=None):
         self._info(f"Appium Click '{locator}' {repeat} times, timeout '{timeout}'")
 
         for i in range(repeat):
             self._info(f"Click attempt {i + 1}/{repeat}")
-            self._invoke_original("appium_click", locator, timeout=timeout, required=True)
+            self.appium_click(locator, timeout=timeout, required=True)
 
     def appium_click_if_exist(self, locator, timeout=2):
         self._info(f"Appium Click If Exist '{locator}', timeout '{timeout}'")
-        result = self._invoke_original("appium_click", locator, timeout=timeout, required=False)
+        result = self.appium_click(locator, timeout=timeout, required=False)
         if not result:
             self._info(f"Element '{locator}' not found, return False")
         return result
 
     # TODO SEND KEYS TO ELEMENT
-    def appium_input(self, locator, text, timeout=20, required=True):
+    def appium_input(self, locator, text, timeout=None, required=True):
         self._info(f"Appium Input '{text}' to '{locator}', timeout '{timeout}', required '{required}'")
 
         text = self._format_keys(text)
@@ -508,11 +535,11 @@ class _ElementKeywords(KeywordGroup):
             action=f"Input '{text}' into '{locator}'",
             required=required,
             return_value=True,
-            poll_interval=0.5
+            poll_interval=None
         )
 
-    def appium_input_text(self, locator_text, text, exact_match=False, timeout=20):
-        self._info(f"Appium Input Text '{text}' to '{locator_text}', exact_match '{exact_match}', timeout '{timeout}'")
+    def appium_input_text(self, locator_text, text, exact_match=False, timeout=None, required=True):
+        self._info(f"Appium Input Text '{text}' to '{locator_text}', exact_match '{exact_match}', timeout '{timeout}', required '{required}'")
         text = self._format_keys(text)
         self._info(f"Formatted Text: '{text}'")
 
@@ -526,37 +553,59 @@ class _ElementKeywords(KeywordGroup):
             timeout,
             func,
             action=f"Input '{text}' into element with text '{locator_text}'",
-            required=True,
+            required=required,
             return_value=True,
-            poll_interval=0.5
+            poll_interval=None
         )
 
     def appium_input_if_exist(self, locator, text, timeout=2):
-        result = self._invoke_original("appium_input", locator, text, timeout=timeout, required=False)
+        result = self.appium_input(locator, text, timeout=timeout, required=False)
         if not result:
             self._info(f"Element '{locator}' not found, skip input and return False")
         return result
 
-    def appium_press_page_up(self, locator=None, press_time=1, timeout=5):
-        self._info(f"Appium Press Page Up {locator}, ")
-        self._invoke_original("appium_input", locator, "{PAGE_UP}" * press_time, timeout)
+    def appium_press_page_up(self, locator=None, press_time=1, timeout=None):
+        self._info(f"Appium Press Page Up {locator}, press_time {press_time}, timeout {timeout}")
+        self.appium_input(locator, "{PAGE_UP}" * press_time, timeout)
 
-    def appium_press_page_down(self, locator=None, press_time=1, timeout=5):
-        self._info(f"Appium Press Page Down {locator}, ")
-        self._invoke_original("appium_input", locator, "{PAGE_DOWN}" * press_time, timeout)
+    def appium_press_page_down(self, locator=None, press_time=1, timeout=None):
+        self._info(f"Appium Press Page Down {locator}, press_time {press_time}, timeout {timeout}")
+        self.appium_input(locator, "{PAGE_DOWN}" * press_time, timeout)
 
-    def appium_press_home(self, locator=None, press_time=1, timeout=5):
-        self._info(f"Appium Press Home {locator}, ")
-        self._invoke_original("appium_input", locator, "{HOME}" * press_time, timeout)
+    def appium_press_home(self, locator=None, press_time=1, timeout=None):
+        self._info(f"Appium Press Home {locator}, press_time {press_time}, timeout {timeout}")
+        self.appium_input(locator, "{HOME}" * press_time, timeout)
 
-    def appium_press_end(self, locator=None, press_time=1, timeout=5):
-        self._info(f"Appium Press End {locator}, ")
-        self._invoke_original("appium_input", locator, "{END}" * press_time, timeout)
+    def appium_press_end(self, locator=None, press_time=1, timeout=None):
+        self._info(f"Appium Press End {locator}, press_time {press_time}, timeout {timeout}")
+        self.appium_input(locator, "{END}" * press_time, timeout)
 
-    def appium_clear_all_text(self, locator, timeout=5):
-        self._info(f"Appium Clear All Text {locator}")
-        self._invoke_original("appium_input", locator, "{CONTROL}a{DELETE}", timeout)
+    def appium_clear_all_text(self, locator, timeout=None):
+        self._info(f"Appium Clear All Text {locator}, timeout {timeout}")
+        self.appium_input(locator, "{CONTROL}a{DELETE}", timeout)
 
+    def appium_scroll_into_view(self, locator, timeout=None, handle_exception=False):
+        """
+        Scrolls to the specified element using the Windows extension. This keyword is only available for NovaWindows2
+
+        Args:
+            locator (WebElement or locator): The element to scroll to or locator of the element.
+            timeout (str): The timeout to wait for the element to be found.
+            handle_exception (bool): If True, return the exception object on failure. If False, raise the exception.
+
+        Returns:
+            None or the exception object.
+        """
+        try:
+            element = self.appium_get_element(locator, timeout)
+            driver = self._current_application()
+            driver.execute_script('windows: scrollIntoView', element)
+        except Exception as exc:
+            if handle_exception:
+                return exc
+            raise
+
+    #########################################################################################################
     # TODO old method
     def clear_text(self, locator):
         """Clears the text field identified by `locator`.
@@ -637,7 +686,7 @@ class _ElementKeywords(KeywordGroup):
         driver = self._current_application()
         return driver.is_keyboard_shown()
 
-    def page_should_contain_text(self, text, loglevel='INFO'):
+    def page_should_contain_text(self, text, loglevel='DEBUG'):
         """Verifies that current page contains `text`.
 
         If this keyword fails, it automatically logs the page source
@@ -645,12 +694,12 @@ class _ElementKeywords(KeywordGroup):
         Giving `NONE` as level disables logging.
         """
         if not self._is_text_present(text):
-            self._invoke_original("log_source", loglevel)
+            self.log_source(loglevel)
             raise AssertionError("Page should have contained text '%s' "
                                  "but did not" % text)
         self._info("Current page contains text '%s'." % text)
 
-    def page_should_not_contain_text(self, text, loglevel='INFO'):
+    def page_should_not_contain_text(self, text, loglevel='DEBUG'):
         """Verifies that current page not contains `text`.
 
         If this keyword fails, it automatically logs the page source
@@ -658,11 +707,11 @@ class _ElementKeywords(KeywordGroup):
         Giving `NONE` as level disables logging.
         """
         if self._is_text_present(text):
-            self._invoke_original("log_source", loglevel)
+            self.log_source(loglevel)
             raise AssertionError("Page should not have contained text '%s'" % text)
         self._info("Current page does not contains text '%s'." % text)
 
-    def page_should_contain_element(self, locator, loglevel='INFO'):
+    def page_should_contain_element(self, locator, loglevel='DEBUG'):
         """Verifies that current page contains `locator` element.
 
         If this keyword fails, it automatically logs the page source
@@ -670,12 +719,12 @@ class _ElementKeywords(KeywordGroup):
         Giving `NONE` as level disables logging.
         """
         if not self._is_element_present(locator):
-            self._invoke_original("log_source", loglevel)
+            self.log_source(loglevel)
             raise AssertionError("Page should have contained element '%s' "
                                  "but did not" % locator)
         self._info("Current page contains element '%s'." % locator)
 
-    def page_should_not_contain_element(self, locator, loglevel='INFO'):
+    def page_should_not_contain_element(self, locator, loglevel='DEBUG'):
         """Verifies that current page not contains `locator` element.
 
         If this keyword fails, it automatically logs the page source
@@ -683,35 +732,35 @@ class _ElementKeywords(KeywordGroup):
         Giving `NONE` as level disables logging.
         """
         if self._is_element_present(locator):
-            self._invoke_original("log_source", loglevel)
+            self.log_source(loglevel)
             raise AssertionError("Page should not have contained element '%s'" % locator)
         self._info("Current page not contains element '%s'." % locator)
 
-    def element_should_be_disabled(self, locator, loglevel='INFO'):
+    def element_should_be_disabled(self, locator, loglevel='DEBUG'):
         """Verifies that element identified with locator is disabled.
 
         Key attributes for arbitrary elements are `id` and `name`. See
         `introduction` for details about locating elements.
         """
         if self._element_find(locator, True, True).is_enabled():
-            self._invoke_original("log_source", loglevel)
+            self.log_source(loglevel)
             raise AssertionError("Element '%s' should be disabled "
                                  "but did not" % locator)
         self._info("Element '%s' is disabled ." % locator)
 
-    def element_should_be_enabled(self, locator, loglevel='INFO'):
+    def element_should_be_enabled(self, locator, loglevel='DEBUG'):
         """Verifies that element identified with locator is enabled.
 
         Key attributes for arbitrary elements are `id` and `name`. See
         `introduction` for details about locating elements.
         """
         if not self._element_find(locator, True, True).is_enabled():
-            self._invoke_original("log_source", loglevel)
+            self.log_source(loglevel)
             raise AssertionError("Element '%s' should be enabled "
                                  "but did not" % locator)
         self._info("Element '%s' is enabled ." % locator)
 
-    def element_should_be_visible(self, locator, loglevel='INFO'):
+    def element_should_be_visible(self, locator, loglevel='DEBUG'):
         """Verifies that element identified with locator is visible.
 
         Key attributes for arbitrary elements are `id` and `name`. See
@@ -720,7 +769,7 @@ class _ElementKeywords(KeywordGroup):
         New in AppiumLibrary 1.4.5
         """
         if not self._element_find(locator, True, True).is_displayed():
-            self._invoke_original("log_source", loglevel)
+            self.log_source(loglevel)
             raise AssertionError("Element '%s' should be visible "
                                  "but did not" % locator)
 
@@ -1022,17 +1071,16 @@ class _ElementKeywords(KeywordGroup):
         count = len(self._element_find("xpath=" + xpath, False, False))
         return str(count)
 
-    def text_should_be_visible(self, text, exact_match=False, loglevel='INFO'):
+    def text_should_be_visible(self, text, exact_match=False, loglevel='DEBUG'):
         """Verifies that element identified with text is visible.
 
         New in AppiumLibrary 1.4.5
         """
         if not self._element_find_by_text(text, exact_match).is_displayed():
-            self._invoke_original("log_source", loglevel)
-            raise AssertionError("Text '%s' should be visible "
-                                 "but did not" % text)
+            self.log_source(loglevel)
+            raise AssertionError("Text '%s' should be visible but did not" % text)
 
-    def xpath_should_match_x_times(self, xpath, count, error=None, loglevel='INFO'):
+    def xpath_should_match_x_times(self, xpath, count, error=None, loglevel='DEBUG'):
         """Verifies that the page contains the given number of elements located by the given ``xpath``.
 
         One should not use the `xpath=` prefix for 'xpath'. XPath is assumed.
@@ -1051,20 +1099,12 @@ class _ElementKeywords(KeywordGroup):
         actual_xpath_count = len(self._element_find("xpath=" + xpath, False, False))
         if int(actual_xpath_count) != int(count):
             if not error:
-                error = "Xpath %s should have matched %s times but matched %s times" \
-                        % (xpath, count, actual_xpath_count)
-            self._invoke_original("log_source", loglevel)
+                error = "Xpath %s should have matched %s times but matched %s times" % (xpath, count, actual_xpath_count)
+            self.log_source(loglevel)
             raise AssertionError(error)
-        self._info("Current page contains %s elements matching '%s'."
-                   % (actual_xpath_count, xpath))
+        self._info("Current page contains %s elements matching '%s'." % (actual_xpath_count, xpath))
 
     # Private
-
-    def _get_maxtime(self, timeout) -> float:
-        if not timeout:
-            timeout = self._bi.get_variable_value("${TIMEOUT}", "20")
-        return time.time() + timestr_to_secs(timeout)
-
     def _retry(
             self,
             timeout,
@@ -1072,8 +1112,7 @@ class _ElementKeywords(KeywordGroup):
             action: str = "",
             required: bool = True,
             return_value: bool = False,
-            return_retry_result: bool = False,
-            poll_interval: float = 0.5
+            poll_interval: float = None
     ):
         """
         Retry a function until it succeeds or the timeout is reached.
@@ -1084,7 +1123,6 @@ class _ElementKeywords(KeywordGroup):
             action (str): Description of the action for error messages.
             required (bool): If True, raises TimeoutError on failure. If False, returns False or None.
             return_value (bool): If True, returns the function result (even if None). If False, returns True on success.
-            return_retry_result (bool): If True, returns the full RetryResult object instead of just the result.
             poll_interval (float): Seconds to wait between retry attempts (default 0.5s).
 
         Returns:
@@ -1094,61 +1132,49 @@ class _ElementKeywords(KeywordGroup):
             TimeoutError: If required=True and the function did not succeed within timeout.
         """
         start = time.time()
-        timeout = timeout or self._bi.get_variable_value("${TIMEOUT}", "20")
+        timeout = timeout or self._timeout_in_secs
         maxtime = start + timestr_to_secs(timeout)
-        rr = _RetryResult()
+        poll = timestr_to_secs(poll_interval or self._sleep_between_wait)
+
+        result = None
+        executed = False
+        last_exception = None
 
         while True:
             try:
-                rr.result = func()
-                rr.executed = True
-                rr.last_exception = None
+                result = func()
+                executed = True
+                last_exception = None
                 break
             except Exception as e:
-                rr.last_exception = e
+                last_exception = e
 
             if time.time() > maxtime:
-                rr.timeout = True
+                # timeout
                 break
 
-            time.sleep(poll_interval)
+            time.sleep(poll)
 
-        rr.duration = time.time() - start
-        self._debug(f"_retry duration for action '{action}': {rr.duration:.2f}s")
+        if self._log_level in self.LOG_LEVEL_DEBUG:
+            duration = time.time() - start
+            self._debug(f"_retry duration for action '{action}': {duration:.2f}s")
 
-        if return_retry_result:
-            return rr
-
-        if rr.executed:
-            return rr.result if return_value else True
+        if executed:
+            return result if return_value else True
 
         if required:
-            raise TimeoutError(f"{action} failed after {timeout}s") from rr.last_exception
+            raise TimeoutError(f"{action} failed after {timeout}s") from last_exception
 
         return None if return_value else False
 
-    def _context_finder(self, locator, tag):
-        """Try finding, refresh context on failure, retry once."""
-        try:
-            return self._element_finder.find(self._context, locator, tag)
-        except (StaleElementReferenceException, NoSuchElementException, WebDriverException):
-            # Refresh context, then retry
-            if self._context_locator is None:
-                raise Exception("No context locator stored. Call set_search_context() first.")
-            self._context = self._invoke_original("appium_get_element", self._context_locator, 5)
-            return self._element_finder.find(self._context, locator, tag)
-
     def _element_find(self, locator, first_only, required, tag=None):
-        application = self._current_application()
+        application = self._context.get('element') or self._current_application()
         elements = None
         if isinstance(locator, str):
             _locator = locator
-            if self._context:
-                elements = self._context_finder(_locator, tag)
-            else:
-                elements = self._element_finder.find(application, _locator, tag)
+            elements = self._element_finder.find(application, _locator, tag)
             if required and len(elements) == 0:
-                raise ValueError("Element locator '" + locator + "' did not match any elements.")
+                raise ValueError(f"Element locator '{locator}' did not match any elements.")
             if first_only:
                 if len(elements) == 0:
                     return None
@@ -1266,7 +1292,7 @@ class _ElementKeywords(KeywordGroup):
 
     def _is_text_present(self, text):
         text_norm = normalize('NFD', text)
-        source_norm = normalize('NFD', self._invoke_original("get_source"))
+        source_norm = normalize('NFD', self.get_source())
         return text_norm in source_norm
 
     def _is_element_present(self, locator):

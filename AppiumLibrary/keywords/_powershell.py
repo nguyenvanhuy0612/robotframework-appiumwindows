@@ -13,8 +13,6 @@ from AppiumLibrary import utils
 from AppiumLibrary.locators import ElementFinder
 from .keywordgroup import KeywordGroup
 
-SCRIPTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "scripts"))
-
 
 class _PowershellKeywords(KeywordGroup):
     def __init__(self):
@@ -204,9 +202,9 @@ class _PowershellKeywords(KeywordGroup):
         """
         try:
             if file_path:
-                self._info(f'file_path: {file_path}')
+                self._info(f'Read file: {file_path}')
                 ps_script = utils.read_file(file_path)
-            self._info(f"ps_script: \n{ps_script}")
+            self._info(f"PowerShell script: \n{ps_script}")
             driver = self._current_application()
             result = driver.execute_script("powerShell", {"script": ps_script})
             return result
@@ -550,4 +548,4 @@ class _PowershellKeywords(KeywordGroup):
         raise Exception('Not Implement yet')
 
     def _script_path(self, name):
-        return os.path.join(SCRIPTS_DIR, name)
+        return Exception('Not Implement yet')

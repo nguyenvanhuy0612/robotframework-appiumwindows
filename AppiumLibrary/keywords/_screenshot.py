@@ -30,7 +30,7 @@ class _ScreenshotKeywords(KeywordGroup):
         >>> driver.get_screenshot_as_file("/Screenshots/foo.png")
         """
 
-        element = self._invoke_original("appium_get_element", locator, timeout, False)
+        element = self.appium_get_element(locator, timeout, False)
 
         if not element:
             self._info(f'Not found {locator}, return None')
@@ -40,8 +40,7 @@ class _ScreenshotKeywords(KeywordGroup):
 
         if filename:
             if not str(filename).lower().endswith(".png"):
-                self._info(
-                    "name used for saved screenshot does not match file type. It should end with a `.png` extension")
+                self._info("name used for saved screenshot does not match file type. It should end with a `.png` extension")
 
             png = b64decode(base64data.encode("ascii"))
             try:
@@ -58,11 +57,11 @@ class _ScreenshotKeywords(KeywordGroup):
 
     @ignore_on_fail
     def appium_get_screenshot(self):
-        return self._invoke_original("appium_capture_page_screenshot", None, False)
+        return self.appium_capture_page_screenshot(None, False)
 
     def appium_capture_page_screenshot(self, filename=None, embed=True):
         try:
-            return self._invoke_original("capture_page_screenshot", filename, embed)
+            return self.capture_page_screenshot(filename, embed)
         except Exception as err:
             self._info(err)
         return None
@@ -89,18 +88,15 @@ class _ScreenshotKeywords(KeywordGroup):
 
             # Image is shown on its own row and thus prev row is closed on purpose
             if embed:
-                self._html('</td></tr><tr><td colspan="3"><a href="%s">'
-                           '<img src="%s" width="800px"></a>' % (link, link))
+                self._html('</td></tr><tr><td colspan="3"><a href="%s"><img src="%s" width="800px"></a>' % (link, link))
             return path
         else:
             base64_screenshot = self._current_application().get_screenshot_as_base64()
             if embed:
-                self._html('</td></tr><tr><td colspan="3">'
-                           '<img src="data:image/png;base64, %s" width="800px">' % base64_screenshot)
+                self._html('</td></tr><tr><td colspan="3"><img src="data:image/png;base64, %s" width="800px">' % base64_screenshot)
             return None
 
     # Private
-
     def _get_screenshot_paths(self, filename):
         filename = filename.replace('/', os.sep)
         logdir = self._get_log_dir()

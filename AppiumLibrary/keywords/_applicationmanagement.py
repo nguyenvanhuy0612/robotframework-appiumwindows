@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
+import base64
 import inspect
 import os
 
 import robot
 from appium import webdriver
 from appium.options.common import AppiumOptions
+from appium.webdriver.client_config import AppiumClientConfig
 
 from AppiumLibrary.utils import ApplicationCache
 from .keywordgroup import KeywordGroup
-
-ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 
 class _ApplicationManagementKeywords(KeywordGroup):
@@ -35,9 +35,78 @@ class _ApplicationManagementKeywords(KeywordGroup):
         self._cache.close_all(ignore_fail, quit_app)
 
     def appium_save_source(self, file_path='file_source.txt'):
-        page_source = self._invoke_original("get_source")
+        page_source = self.get_source()
         with open(file_path, 'w', encoding='utf-8') as file:
             file.write(page_source)
+
+    def appium_activate_application(self, process):
+        """Activates the application with the given process name.
+
+        Args:
+            process (str): The process name of the application to activate.
+
+        Example:
+        | Appium Activate Application | notepad.exe |
+        """
+        self._info(f"Activating application '{process}'")
+        driver = self._current_application()
+        driver.execute_script('windows: setProcessForeground', {'process': process})
+
+    def appium_set_clipboard(self, content, content_type='plaintext', encode_base64=True):
+        """Sets the clipboard content.
+
+        Args:
+            content (str): The content to set to the clipboard.
+            content_type (str): The type of content to set to the clipboard.
+            encode_base64 (bool): Whether to encode the clipboard content to base64.
+
+        Example:
+        | Appium Set Clipboard | Hello World |
+        """
+        self._info("Setting clipboard content")
+        if content_type == 'text/plain':
+            content_type = 'plaintext'
+        elif content_type == 'image/png':
+            content_type = 'image'
+
+        if content_type not in ['plaintext', 'image']:
+            raise ValueError("Invalid content type. Must be 'plaintext' or 'image'.")
+
+        if encode_base64:
+            content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+
+        driver = self._current_application()
+        result = driver.execute_script('windows: setClipboard', {'b64Content': content, 'contentType': content_type})
+        return result
+
+    def appium_get_clipboard(self, content_type='plaintext', decode_base64=True):
+        """Gets the clipboard content.
+
+        Args:
+            content_type (str): The type of content to get from the clipboard.
+            decode_base64 (bool): Whether to decode the clipboard content from base64.
+
+        Returns:
+            str: The clipboard content.
+
+        Example:
+        | ${clipboard}= | Appium Get Clipboard |
+        """
+        self._info("Getting clipboard content")
+        if content_type == 'text/plain':
+            content_type = 'plaintext'
+        elif content_type == 'image/png':
+            content_type = 'image'
+
+        if content_type not in ['plaintext', 'image']:
+            raise ValueError("Invalid content type. Must be 'plaintext' or 'image'.")
+
+        driver = self._current_application()
+        clipboard = driver.execute_script('windows: getClipboard', {'contentType': content_type})
+
+        if decode_base64:
+            clipboard = base64.b64decode(clipboard).decode('utf-8')
+        return clipboard
 
     def close_application(self):
         """Closes the current application and also close webdriver session."""
@@ -71,15 +140,27 @@ class _ApplicationManagementKeywords(KeywordGroup):
         | Open Application | http://localhost:4723/wd/hub | alias=Myapp1         | platformName=iOS      | platformVersion=7.0            | deviceName='iPhone Simulator'           | app=your.app                         |
         | Open Application | http://localhost:4723/wd/hub | alias=Myapp1         | platformName=iOS      | platformVersion=7.0            | deviceName='iPhone Simulator'           | app=your.app                         | strict_ssl=False         |
         | Open Application | http://localhost:4723/wd/hub | platformName=Android | platformVersion=4.2.2 | deviceName=192.168.56.101:5555 | app=${CURDIR}/demoapp/OrangeDemoApp.apk | appPackage=com.netease.qa.orangedemo | appActivity=MainActivity |
+        | Open Application | http://localhost:4723/wd/hub | platformName=Windows | automationName=NovaWindows2 | app=Root | # Connect to Windows Desktop using NovaWindows2 driver |
         """
+        # Parse AppiumClientConfig arguments from kwargs
+        ignore_certificates = kwargs.pop('ignore_certificates', True)
 
-        desired_caps = AppiumOptions().load_capabilities(caps=kwargs)
-        application = webdriver.Remote(str(remote_url), options=desired_caps)
+        # Handle strict_ssl alias for ignore_certificates (strict_ssl=False -> ignore_certificates=True)
+        if 'strict_ssl' in kwargs:
+            ignore_certificates = str(kwargs.pop('strict_ssl')).lower() == 'false'
 
-        self._info('Opened application with session id %s' % application.session_id)
+        client_config = AppiumClientConfig(remote_url,
+                                            direct_connection=kwargs.pop('direct_connection', True),
+                                            keep_alive=kwargs.pop('keep_alive', False),
+                                            ignore_certificates=ignore_certificates)
+
+        options = AppiumOptions().load_capabilities(caps=kwargs)
+        application = webdriver.Remote(command_executor=str(remote_url), options=options, client_config=client_config)
+
+        self._info(f'Opened application with session id {application.session_id}')
 
         if hasattr(self, "clear_search_context"):
-            self._invoke_original("clear_search_context")
+            self.clear_search_context()
 
         return self._cache.register(application, alias)
 
@@ -187,7 +268,7 @@ class _ApplicationManagementKeywords(KeywordGroup):
         | Open page that loads slowly |
         | Set Appium Timeout | ${orig timeout} |
         """
-        old_timeout = self._invoke_original("get_appium_timeout")
+        old_timeout = self.get_appium_timeout()
         self._timeout_in_secs = robot.utils.timestr_to_secs(seconds)
         return old_timeout
 
@@ -210,8 +291,7 @@ class _ApplicationManagementKeywords(KeywordGroup):
         if ll == 'NONE':
             return ''
         else:
-            if "run_keyword_and_ignore_error" not in [check_error_ignored[3] for check_error_ignored in
-                                                      inspect.stack()]:
+            if "run_keyword_and_ignore_error" not in [check_error_ignored[3] for check_error_ignored in inspect.stack()]:
                 source = self._current_application().page_source
                 self._log(source, ll)
                 return source

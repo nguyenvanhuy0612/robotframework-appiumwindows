@@ -2,36 +2,35 @@
 import inspect
 import functools
 
-# Internal/private marker attribute names
-_RUN_ON_FAILURE_ATTR = "__rof_wrapped__"
-_IGNORE_RUN_FAILURE_ATTR = "__rof_ignore__"
-_ORIGINAL_METHOD_ATTR = "__original__"
+# Internal/private marker attribute name
+_RUN_ON_FAILURE_MARKER = "__rof_processed__"
 
 
 def _run_on_failure_decorator(method):
     """Decorator to wrap keyword methods with _run_on_failure support."""
-    if getattr(method, _RUN_ON_FAILURE_ATTR, False):
-        # Already decorated → skip re-wrapping
+    if getattr(method, _RUN_ON_FAILURE_MARKER, False):
+        # Already decorated or ignored → skip re-wrapping
         return method
 
     @functools.wraps(method)
     def wrapper(*args, **kwargs):
         try:
             return method(*args, **kwargs)
-        except Exception:
+        except Exception as err:
             self = args[0] if args else None
             if self and hasattr(self, "_run_on_failure"):
-                self._run_on_failure()
+                if not getattr(err, "_run_on_failure_executed", False):
+                    self._run_on_failure()
+                    err._run_on_failure_executed = True
             raise
 
-    setattr(wrapper, _RUN_ON_FAILURE_ATTR, True)      # mark as decorated
-    setattr(wrapper, _ORIGINAL_METHOD_ATTR, method)   # keep reference to original
+    setattr(wrapper, _RUN_ON_FAILURE_MARKER, True)      # mark as decorated
     return wrapper
 
 
 def ignore_on_fail(method):
     """Decorator to mark methods that should never be wrapped by run_on_failure."""
-    setattr(method, _IGNORE_RUN_FAILURE_ATTR, True)
+    setattr(method, _RUN_ON_FAILURE_MARKER, True)
     return method
 
 
@@ -41,15 +40,13 @@ class KeywordGroupMetaClass(type):
             if (
                 not name.startswith('_')
                 and inspect.isfunction(method)
-                and not getattr(method, _IGNORE_RUN_FAILURE_ATTR, False)
-                and not getattr(method, _RUN_ON_FAILURE_ATTR, False)
+                and not getattr(method, _RUN_ON_FAILURE_MARKER, False)
             ):
                 attrs[name] = _run_on_failure_decorator(method)
         return super().__new__(cls, clsname, bases, attrs)
 
 
 class KeywordGroup(metaclass=KeywordGroupMetaClass):
-
     def _invoke_original(self, method, *args, **kwargs):
         """
         Call the original (undecorated) implementation of a method.
@@ -66,5 +63,9 @@ class KeywordGroup(metaclass=KeywordGroupMetaClass):
         if method is None:
             return None
 
-        original = getattr(method, _ORIGINAL_METHOD_ATTR, method)
-        return original(self, *args, **kwargs)
+        if hasattr(method, "__wrapped__"):
+            # It's a decorated method (function), so we must pass self
+            return method.__wrapped__(self, *args, **kwargs)
+
+        # It's an undecorated bound method, so self is already bound
+        return method(*args, **kwargs)

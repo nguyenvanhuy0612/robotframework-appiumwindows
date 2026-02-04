@@ -1,11 +1,15 @@
 # IDE/Editor folders
 .idea/
 .vscode/
+*.code-workspace
 
 # OS-specific files
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# temp_upstream
+temp_upstream/
 
 # Python cache and compiled files
 __pycache__/

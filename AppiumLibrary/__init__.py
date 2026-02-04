@@ -78,7 +78,7 @@ class AppiumLibrary(
     ROBOT_LIBRARY_SCOPE = 'GLOBAL'
     ROBOT_LIBRARY_VERSION = VERSION
 
-    def __init__(self, timeout=5, run_on_failure='Appium Capture Page Screenshot', sleep_between_wait_loop=0.2):
+    def __init__(self, timeout=10, run_on_failure='Appium Capture Page Screenshot', sleep_between_wait_loop=1):
         """AppiumLibrary can be imported with optional arguments.
 
         ``timeout`` is the default timeout used to wait for all waiting actions.

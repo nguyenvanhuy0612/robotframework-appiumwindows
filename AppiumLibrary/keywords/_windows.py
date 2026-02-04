@@ -1,4 +1,9 @@
 import time
+import os
+import pathlib
+import re
+import ntpath
+import posixpath
 
 from AppiumLibrary.keywords.keywordgroup import KeywordGroup
 
@@ -44,6 +49,57 @@ class _WindowsKeywords(KeywordGroup):
     def appium_sendkeys(self, text=None, **kwargs):
         self._info(f"Appium Sendkeys '{text}'")
         self._appium_keys_api(text=text, **kwargs)
+
+    def appium_normalize_path(self, path, sep="\\", case_normalize=False, escape_backtick=True):
+        """Normalizes the given path.
+        - Collapses redundant separators and up-level references.
+        - Set sep to ``/`` to Converts ``\\`` to ``/``
+        - Replaces initial ``~`` or ``~user`` by that user's home directory.
+        - If ``case_normalize`` is given a true value (see `Boolean arguments`)
+          on Windows, converts the path to all lowercase.
+        - Converts ``pathlib.Path`` instances to ``str``.
+
+        Examples:
+        | ${path1} = | Appium Normalize Path | abc/           |
+        | ${path2} = | Appium Normalize Path | abc/../def     |
+        | ${path3} = | Appium Normalize Path | abc/./def//ghi |
+        | ${path4} = | Appium Normalize Path | ~robot/stuff   |
+        =>
+        - ${path1} = ``abc``
+        - ${path2} = ``def``
+        - ${path3} = ``abc\\def\\ghi``
+        - ${path4} = ``\\home\\robot\\stuff``
+
+        """
+        # Determine strict library to use based on target separator
+        if sep == "\\":
+            path_module = ntpath
+        else:
+            path_module = posixpath
+
+        if isinstance(path, pathlib.Path):
+            path = str(path)
+
+        path = path or "."
+        path = os.path.expanduser(path)
+
+        # If targeting Posix, ensure backslashes are converted to forward slashes 
+        # BEFORE normalization, because posixpath treats backslash as a filename character.
+        if path_module is posixpath:
+            path = path.replace("\\", "/")
+
+        path = path_module.normpath(path)
+
+        if case_normalize:
+            path = path_module.normcase(path)
+
+        if escape_backtick:
+            path = re.sub(r"(?<!`)`(?!`)", "``", path)
+
+        # Force final separator just in case, though normpath usually handles it.
+        # ntpath produces '\', posixpath produces '/'
+        # The original code did a final cleaning, we can preserve rstrip.
+        return path.rstrip()
 
     # Private
     def _apply_modifier_keys(self, params: dict, modifier_keys):
