@@ -49,6 +49,10 @@ class _WindowsKeywords(KeywordGroup):
     def appium_sendkeys(self, text=None, **kwargs):
         self._info(f"Appium Sendkeys '{text}'")
         self._appium_keys_api(text=text, **kwargs)
+    
+    # TODO: temporary add, will be removed in the future
+    def normalize_windows_path(self, path, sep="\\", case_normalize=False, escape_backtick=True):
+        return self.appium_normalize_path(path=path, sep=sep, case_normalize=case_normalize, escape_backtick=escape_backtick)
 
     def appium_normalize_path(self, path, sep="\\", case_normalize=False, escape_backtick=True):
         """Normalizes the given path.
