@@ -510,9 +510,46 @@ class _ElementKeywords(KeywordGroup):
     
     # TODO temporary add, will remove in the future
     def appium_click_until(self, locators: list, timeout=None, handle_error=True):
-        return self.appium_click_first_match(locators=locators, timeout=timeout, handle_error=handle_error)
+        """
+        Click any element in the list of locators until all elements are not found.
+
+        Args:
+            locators: List of locators to try in order.
+            timeout: Maximum time to wait for an element to appear (default: None).
+            handle_error: Whether to handle errors (default: True).
+        """
+        self._info(f"Appium Click Until: locators='{locators}', timeout='{timeout}', handle_error='{handle_error}'")
+
+        def func():
+            found = False
+            for locator in locators:
+                element = self._element_find(locator, True, False)
+                if element:
+                    element.click()
+                    found = True
+
+            if not found:
+                return False
+            raise Exception(f"Still found element in {locators}, retrying...")
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Click until '{locators}'",
+            required=not handle_error,
+            return_value=False,
+            poll_interval=None
+        )
 
     def appium_click_first_match(self, locators: list, timeout=None, handle_error=True):
+        """
+        Click the first element in the list of locators that appears.
+
+        Args:
+            locators: List of locators to try in order.
+            timeout: Maximum time to wait for an element to appear (default: None).
+            handle_error: Whether to handle errors (default: True).
+        """
         self._info(f"Appium Click First Match: locators='{locators}', timeout='{timeout}', handle_error='{handle_error}'")
 
         def func():
@@ -533,6 +570,7 @@ class _ElementKeywords(KeywordGroup):
             func,
             action=f"Click until '{locators}'",
             required=not handle_error,
+            return_value=False,
             poll_interval=None
         )
 
@@ -1183,7 +1221,7 @@ class _ElementKeywords(KeywordGroup):
 
             time.sleep(poll)
 
-        if self._log_level in self.LOG_LEVEL_DEBUG:
+        if self._log_level == 'DEBUG':
             duration = time.time() - start
             self._debug(f"_retry duration for action '{action}': {duration:.2f}s")
 
