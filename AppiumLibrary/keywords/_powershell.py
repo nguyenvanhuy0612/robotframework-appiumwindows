@@ -70,6 +70,10 @@ class _PowershellKeywords(KeywordGroup):
 
         self.appium_execute_powershell_command(ps_command)
 
+    # TODO temporary add, will remove in the future
+    def appium_sendkeys_via_powershell(self, text: str):
+        self.appium_ps_sendkeys(text)
+
     def appium_ps_sendkeys(self, text: str):
         """
         SendKeys can found at: https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.sendkeys?view=windowsdesktop-10.0
@@ -98,6 +102,27 @@ class _PowershellKeywords(KeywordGroup):
         self._info(f'command: {ps_command}')
 
         self.appium_execute_powershell_command(ps_command)
+    
+    # TODO temporary add, will remove in the future
+    def appium_drag_and_drop_via_powershell(
+            self,
+            start_locator=None,
+            end_locator=None,
+            x_start=0,
+            y_start=0,
+            x_end=0,
+            y_end=0,
+            button='left',
+            **kwargs
+    ):
+        return self.appium_ps_drag_and_drop(start_locator=start_locator, 
+                                            end_locator=end_locator, 
+                                            x_start=x_start, 
+                                            y_start=y_start, 
+                                            x_end=x_end, 
+                                            y_end=y_end, 
+                                            button=button, 
+                                            **kwargs)
 
     def appium_ps_drag_and_drop(
             self,
@@ -125,7 +150,9 @@ class _PowershellKeywords(KeywordGroup):
             - x_end_offset / y_end_offset
             - duration_sec: total drag time in seconds (default 0.5)
         """
-        self._info(f"Appium Ps Drag And Drop")
+        self._info("Appium Ps Drag And Drop")
+        self._info(f"start_locator='{start_locator}', end_locator='{end_locator}', x_start='{x_start}', y_start='{y_start}', x_end='{x_end}', y_end='{y_end}', button='{button}', kwargs='{kwargs}'")
+
         # Get actual coordinates from locators (if any)
         if start_locator:
             start_rect = self.get_element_rect(start_locator)

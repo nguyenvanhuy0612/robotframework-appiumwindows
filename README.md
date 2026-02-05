@@ -135,7 +135,7 @@ Open Windows App
     ...    platformName=Windows
     ...    appium:automationName=NovaWindows2
     ...    appium:app=${app_id}
-    ...    appium:newCommandTimeout=300
+    ...    appium:newCommandTimeout=20
     Open Application    ${REMOTE_URL}    &{capabilities}
 ```
 
