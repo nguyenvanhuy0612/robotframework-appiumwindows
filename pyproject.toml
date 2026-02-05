@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "robotframework-appiumwindows"
-version = "0.1.4"
+version = "0.1.5"
 description = "Robot Framework AppiumLibrary extension for Windows desktop automation using NovaWindows2 Driver instead of WinAppDriver."
 authors = [
   { name = "Huy Nguyen", email = "nguyenvanhuy0612@gmail.com" }

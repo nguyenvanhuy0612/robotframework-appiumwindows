@@ -14,28 +14,27 @@ class _WindowsKeywords(KeywordGroup):
         super().__init__()
 
     # Public
-    def appium_hover(self, locator, start_locator=None, timeout=20, **kwargs):
+    def appium_hover(self, locator, start_locator=None, timeout=None, **kwargs):
         self._info(f"Appium Hover '{locator}', timeout '{timeout}'")
         self._appium_hover_api(start_locator=start_locator, end_locator=locator, timeout=timeout, **kwargs)
 
-    def appium_click_offset(self, locator, x_offset=0, y_offset=0, timeout=20, **kwargs):
-        self._info(
-            f"Appium Click Offset '{locator}', (x_offset,y_offset) '({x_offset},{y_offset})', timeout '{timeout}'")
+    def appium_click_offset(self, locator, x_offset=0, y_offset=0, timeout=None, **kwargs):
+        self._info(f"Appium Click Offset '{locator}', (x_offset,y_offset) '({x_offset},{y_offset})', timeout '{timeout}'")
         self._appium_click_api(locator=locator, timeout=timeout, x_offset=x_offset, y_offset=y_offset, **kwargs)
 
-    def appium_right_click(self, locator, timeout=20, **kwargs):
+    def appium_right_click(self, locator, timeout=None, **kwargs):
         self._info(f"Appium Right Click '{locator}', timeout '{timeout}'")
         self._appium_click_api(locator=locator, timeout=timeout, button="right", **kwargs)
 
-    def appium_left_click(self, locator, timeout=20, **kwargs):
+    def appium_left_click(self, locator, timeout=None, **kwargs):
         self._info(f"Appium Left Click '{locator}', timeout '{timeout}'")
         self._appium_click_api(locator=locator, timeout=timeout, button="left", **kwargs)
 
-    def appium_double_click(self, locator, timeout=20, **kwargs):
+    def appium_double_click(self, locator, timeout=None, **kwargs):
         self._info(f"Appium Double Click '{locator}', timeout '{timeout}'")
         self._appium_click_api(locator=locator, timeout=timeout, times=2, **kwargs)
 
-    def appium_drag_and_drop(self, start_locator=None, end_locator=None, timeout=20, **kwargs):
+    def appium_drag_and_drop(self, start_locator=None, end_locator=None, timeout=None, **kwargs):
         self._info(f"Appium Drag And Drop '{start_locator} -> {end_locator}', timeout '{timeout}'")
         self._appium_drag_and_drop_api(start_locator=start_locator, end_locator=end_locator, timeout=timeout, **kwargs)
 
@@ -164,7 +163,7 @@ class _WindowsKeywords(KeywordGroup):
 
         self._apply_modifier_keys(click_params, kwargs.get("modifierKeys"))
 
-        def _action():
+        def func():
             elements = self._element_find(locator, False, False)
             if not elements:
                 raise Exception(f"Element not found: {locator}")
@@ -185,7 +184,14 @@ class _WindowsKeywords(KeywordGroup):
             driver.execute_script("windows: click", click_params)
             time.sleep(0.5)
 
-        self._retry(_action, timeout, f"Failed to perform click action on '{locator}'")
+        self._retry(
+            timeout,
+            func,
+            action=f"Failed to perform click action on '{locator}'",
+            required=kwargs.pop("required", True),
+            return_value=kwargs.pop("return_value", True),
+            poll_interval=kwargs.pop("poll_interval", None)
+        )
 
     def _appium_hover_api(self, start_locator, end_locator, timeout, **kwargs):
         """
@@ -201,13 +207,15 @@ class _WindowsKeywords(KeywordGroup):
 
         self._apply_modifier_keys(hover_params, kwargs.get("modifierKeys"))
 
-        def _action():
+        def func():
             if start_locator:
                 start_element = self._element_find(start_locator, True, False)
                 if start_element:
                     hover_params["startElementId"] = start_element.id
                     hover_params.pop("startX", None)
                     hover_params.pop("startY", None)
+                else:
+                    raise Exception(f"Start element not found: {start_locator}")
 
             if end_locator:
                 end_element = self._element_find(end_locator, True, False)
@@ -215,11 +223,20 @@ class _WindowsKeywords(KeywordGroup):
                     hover_params["endElementId"] = end_element.id
                     hover_params.pop("endX", None)
                     hover_params.pop("endY", None)
+                else:
+                    raise Exception(f"End element not found: {end_locator}")
 
             self._current_application().execute_script("windows: hover", hover_params)
             time.sleep(0.5)
 
-        self._retry(_action, timeout, "Failed to perform hover action")
+        self._retry(
+            timeout,
+            func,
+            action="Failed to perform hover action",
+            required=kwargs.pop("required", True),
+            return_value=kwargs.pop("return_value", True),
+            poll_interval=kwargs.pop("poll_interval", None)
+        )
 
     def _appium_drag_and_drop_api(self, start_locator, end_locator, timeout, **kwargs):
         """
@@ -236,7 +253,7 @@ class _WindowsKeywords(KeywordGroup):
 
         self._apply_modifier_keys(drag_params, kwargs.get("modifierKeys"))
 
-        def _action():
+        def func():
             if start_locator:
                 start_element = self._element_find(start_locator, True, False)
                 if start_element:
@@ -254,7 +271,14 @@ class _WindowsKeywords(KeywordGroup):
             self._current_application().execute_script("windows: clickAndDrag", drag_params)
             time.sleep(0.5)
 
-        self._retry(_action, timeout, "Failed to perform drag and drop action")
+        self._retry(
+            timeout,
+            func,
+            action="Failed to perform drag and drop action",
+            required=kwargs.pop("required", True),
+            return_value=kwargs.pop("return_value", True),
+            poll_interval=kwargs.pop("poll_interval", None)
+        )
 
     def _appium_keys_api(self, text, **kwargs):
         """
