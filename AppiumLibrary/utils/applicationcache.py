@@ -19,16 +19,18 @@ class ApplicationCache(ConnectionCache):
         return open_applications
 
     def close(self, ignore_fail=False, quit_app=True):
-        if self.current:
-            application = self.current
-            try:
-                if quit_app:
-                    application.quit()
-                else:
-                    application.close()
-            except Exception as err:
-                if not ignore_fail:
-                    raise err
+        if not self.current:
+            return
+        application = self.current
+        try:
+            if quit_app:
+                application.quit()
+            else:
+                application.close()
+        except Exception:
+            if not ignore_fail:
+                raise
+        finally:
             self.current = self._no_current
             self.current_index = None
             self._closed.add(application)
@@ -41,8 +43,10 @@ class ApplicationCache(ConnectionCache):
                         application.quit()
                     else:
                         application.close()
-                except Exception as err:
+                except Exception:
                     if not ignore_fail:
-                        raise err
+                        raise
+                finally:
+                    self._closed.add(application)
         self.empty_cache()
         return self.current
