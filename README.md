@@ -93,48 +93,44 @@ Here is a comprehensive example demonstrating connection, application launching,
 Library    AppiumLibrary
 
 Test Setup       Open Windows App
-Test Teardown    Close All Applications
+Test Teardown    Appium Close All Applications
 
 *** Variables ***
 ${REMOTE_URL}    http://192.168.1.10:4723
 ${APP_PATH}      C:\\Windows\\System32\\notepad.exe
 
 *** Test Cases ***
-Automate Notepad With Advanced Features
-    [Documentation]    Demonstrates launching an app, typing, using right-click context menu, and verifying via PowerShell.
-    
-    # 1. Launch Application using PowerShell (more reliable for some Win apps)
-    Appium Execute Powershell Command    Start-Process "${APP_PATH}"
-    
-    # 2. Attach to the "Root" session allows finding top-level windows
-    Open Application    ${REMOTE_URL}    platformName=Windows    appium:automationName=NovaWindows2    appium:app=Root
-    
-    # 3. Wait for Notepad window
+Automate Notepad
+    [Documentation]    Demonstrates launching an app, typing, using right-click context menu
+
+    # 1. Launch Notepad via PowerShell
+    Appium Execute Powershell Command    Start-Process ${APP_PATH}
+
+    # 2. Wait for Notepad window
     Wait Until Page Contains Element    name=Untitled - Notepad
-    
-    # 4. Input Text (Standard)
+
+    # 3. Input Text (Standard)
     Appium Input    name=Text Editor    Hello from Robot Framework!
-    
-    # 5. Advanced Interaction: Right Click to open context menu
-    Appium Right Click    name=Text Editor
-    
-    # 6. Select "Select All" from context menu
-    Appium Click    name=Select All
-    
-    # 7. Use PowerShell to verify the process is running
-    ${process}=    Appium Execute Powershell Command    Get-Process notepad | Select-Object -ExpandProperty Id
+
+    # 4. Advanced Interaction: Right Click to open context menu
+    Appium Right Click    name\=Text Editor
+
+    # 5. Select "Select All" from context menu
+    Appium Click    name\=Select All
+
+    # 6. Use PowerShell to verify the process is running
+    ${process}    Appium Execute Powershell Command    Get-Process notepad | Select-Object -ExpandProperty Id
     Log    Notepad Process ID: ${process}
-    
-    # 8. Drag and Drop Example (Conceptual)
-    # Appium Drag And Drop    name=SourceItem    name=TargetFolder
+
+    # 7. Close Notepad
+    Appium Execute Powershell Command    Stop-Process -Id ${process}
 
 *** Keywords ***
 Open Windows App
-    [Arguments]    ${app_id}=Root
-    &{capabilities}=    Create Dictionary
+    &{capabilities}    Create Dictionary
     ...    platformName=Windows
     ...    appium:automationName=NovaWindows2
-    ...    appium:app=${app_id}
+    ...    appium:app=Root
     ...    appium:newCommandTimeout=20
     Open Application    ${REMOTE_URL}    &{capabilities}
 ```
