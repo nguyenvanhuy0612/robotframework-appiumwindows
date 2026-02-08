@@ -445,6 +445,23 @@ class _ElementKeywords(KeywordGroup):
             return_value=True,
             poll_interval=None
         )
+    
+    def appium_get_rect(self, locator=None, timeout=None):
+        self._info(f"Appium Get Rect '{locator}', timeout '{timeout}'")
+
+        def func():
+            if locator:
+                return self._element_find(locator, True, True).rect
+            return self._current_application().get_window_rect()
+
+        return self._retry(
+            timeout,
+            func,
+            action=f"Get rect of '{locator}' or window rect",
+            required=True,
+            return_value=True,
+            poll_interval=None
+        )
 
     # TODO CLICK ELEMENT
     def appium_click(self, locator, timeout=None, required=True):

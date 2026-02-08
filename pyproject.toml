@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "robotframework-appiumwindows"
-version = "0.1.6"
+version = "0.1.7"
 description = "Robot Framework AppiumLibrary extension for Windows desktop automation using NovaWindows2 Driver instead of WinAppDriver."
 authors = [
   { name = "Huy Nguyen", email = "nguyenvanhuy0612@gmail.com" }
 ]
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 requires-python = ">=3.10"
 dependencies = [
   "robotframework>=7.0.0",
@@ -27,7 +27,6 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
   "Operating System :: Microsoft :: Windows",
-  "License :: OSI Approved :: MIT License",
   "Intended Audience :: Developers",
   "Topic :: Software Development :: Testing",
   "Topic :: Software Development :: Quality Assurance",

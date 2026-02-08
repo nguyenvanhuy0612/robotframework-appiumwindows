@@ -17,6 +17,10 @@ class _WindowsKeywords(KeywordGroup):
     def appium_hover(self, locator, start_locator=None, timeout=None, **kwargs):
         self._info(f"Appium Hover '{locator}', timeout '{timeout}'")
         self._appium_hover_api(start_locator=start_locator, end_locator=locator, timeout=timeout, **kwargs)
+    
+    def appium_click_api(self, locator=None, x=0, y=0, timeout=None, **kwargs):
+        self._info(f"Appium Click API '{locator}', timeout '{timeout}', (x,y) '({x},{y})'")
+        self._appium_click_api(locator=locator, timeout=timeout, x=x, y=y, **kwargs)
 
     def appium_click_offset(self, locator, x_offset=0, y_offset=0, timeout=None, **kwargs):
         self._info(f"Appium Click Offset '{locator}', (x_offset,y_offset) '({x_offset},{y_offset})', timeout '{timeout}'")
@@ -41,9 +45,11 @@ class _WindowsKeywords(KeywordGroup):
     def appium_drag_and_drop_by_offset(self, x_start, y_start, x_end, y_end):
         x_start, y_start, x_end, y_end = (int(x) for x in [x_start, y_start, x_end, y_end])
         self._info(f"Appium Drag And Drop By Offset ({x_start}, {y_start}) -> ({x_end}, {y_end})")
-        self._appium_drag_and_drop_api(start_locator=None, end_locator=None, timeout=1,
-                                       startX=x_start, startY=y_start,
-                                       endX=x_end, endY=y_end)
+        self._appium_drag_and_drop_api(start_locator=None, end_locator=None, timeout=1, startX=x_start, startY=y_start, endX=x_end, endY=y_end)
+
+    def appium_scroll(self, locator=None, x=0, y=0, deltaX=0, deltaY=0, timeout=None, **kwargs):
+        self._info(f"Appium Scroll '{locator}', timeout '{timeout}', (x,y) '({x},{y})', (deltaX,deltaY) '({deltaX},{deltaY})'")
+        self._appium_scroll_api(locator=locator, timeout=timeout, x=x, y=y, deltaX=deltaX, deltaY=deltaY, **kwargs)
 
     def appium_sendkeys(self, text=None, **kwargs):
         self._info(f"Appium Sendkeys '{text}'")
@@ -150,46 +156,35 @@ class _WindowsKeywords(KeywordGroup):
         Raises:
             Exception: If the element cannot be found or the click action fails within the timeout.
         """
-        x_offset = int(kwargs.get("x_offset", 0))
-        y_offset = int(kwargs.get("y_offset", 0))
-        is_center = bool(kwargs.get("is_center", False))
-
         click_params = {
-            "button": str(kwargs.get("button", "left")),
-            "durationMs": int(kwargs.get("durationMs", 100)),
-            "times": int(kwargs.get("times", 1)),
-            "interClickDelayMs": int(kwargs.get("interClickDelayMs", 100)),
+            "button": str(kwargs.pop("button", "left")),
+            "durationMs": int(kwargs.pop("durationMs", 100)),
+            "times": int(kwargs.pop("times", 1)),
+            "interClickDelayMs": int(kwargs.pop("interClickDelayMs", 100)),
+            "x": int(kwargs.pop("x", 0)) + int(kwargs.pop("x_offset", 0)),
+            "y": int(kwargs.pop("y", 0)) + int(kwargs.pop("y_offset", 0)),
         }
 
         self._apply_modifier_keys(click_params, kwargs.get("modifierKeys"))
 
         def func():
-            elements = self._element_find(locator, False, False)
-            if not elements:
-                raise Exception(f"Element not found: {locator}")
+            if locator:
+                click_params["elementId"] = self._element_find(locator, True, True).id
+                if click_params["x"] == 0:
+                    click_params.pop("x", None)
+                if click_params["y"] == 0:
+                    click_params.pop("y", None)
 
-            driver = self._current_application()
-            rect = driver.get_window_rect()
-            e_rect = elements[0].rect
-
-            x = rect['x'] + e_rect['x'] + x_offset
-            y = rect['y'] + e_rect['y'] + y_offset
-            if is_center:
-                x += e_rect['width'] // 2
-                y += e_rect['height'] // 2
-
-            click_params.update({"x": x, "y": y})
             self._info(f"Click params {click_params}")
-
-            driver.execute_script("windows: click", click_params)
+            self._current_application().execute_script("windows: click", click_params)
             time.sleep(0.5)
 
-        self._retry(
+        return self._retry(
             timeout,
             func,
             action=f"Failed to perform click action on '{locator}'",
             required=kwargs.pop("required", True),
-            return_value=kwargs.pop("return_value", True),
+            return_value=False,
             poll_interval=kwargs.pop("poll_interval", None)
         )
 
@@ -198,34 +193,31 @@ class _WindowsKeywords(KeywordGroup):
         Perform a hover action using Platform-Specific Extensions.
         """
         hover_params = {
-            "startX": int(kwargs.get("startX", 0)),
-            "startY": int(kwargs.get("startY", 0)),
-            "endX": int(kwargs.get("endX", 0)),
-            "endY": int(kwargs.get("endY", 0)),
-            "durationMs": int(kwargs.get("durationMs", 100)),
+            "startX": int(kwargs.pop("startX", 0)),
+            "startY": int(kwargs.pop("startY", 0)),
+            "endX": int(kwargs.pop("endX", 0)),
+            "endY": int(kwargs.pop("endY", 0)),
+            "durationMs": int(kwargs.pop("durationMs", 100)),
         }
 
         self._apply_modifier_keys(hover_params, kwargs.get("modifierKeys"))
 
         def func():
             if start_locator:
-                start_element = self._element_find(start_locator, True, False)
-                if start_element:
-                    hover_params["startElementId"] = start_element.id
+                hover_params["startElementId"] = self._element_find(start_locator, True, True).id
+                if hover_params["startX"] == 0:
                     hover_params.pop("startX", None)
+                if hover_params["startY"] == 0:
                     hover_params.pop("startY", None)
-                else:
-                    raise Exception(f"Start element not found: {start_locator}")
 
             if end_locator:
-                end_element = self._element_find(end_locator, True, False)
-                if end_element:
-                    hover_params["endElementId"] = end_element.id
+                hover_params["endElementId"] = self._element_find(end_locator, True, True).id
+                if hover_params["endX"] == 0:
                     hover_params.pop("endX", None)
+                if hover_params["endY"] == 0:
                     hover_params.pop("endY", None)
-                else:
-                    raise Exception(f"End element not found: {end_locator}")
 
+            self._info(f"Hover params {hover_params}")
             self._current_application().execute_script("windows: hover", hover_params)
             time.sleep(0.5)
 
@@ -241,34 +233,37 @@ class _WindowsKeywords(KeywordGroup):
     def _appium_drag_and_drop_api(self, start_locator, end_locator, timeout, **kwargs):
         """
         Perform a drag and drop action using Appium Windows Driver.
-        https://github.com/appium/appium-windows-driver?tab=readme-ov-file#windows-clickanddrag
+        https://github.com/nguyenvanhuy0612/appium-novawindows2-driver?tab=readme-ov-file#windows-clickanddrag
         """
         drag_params = {
-            "startX": int(kwargs.get("startX", 0)),
-            "startY": int(kwargs.get("startY", 0)),
-            "endX": int(kwargs.get("endX", 0)),
-            "endY": int(kwargs.get("endY", 0)),
-            "durationMs": int(kwargs.get("durationMs", 5000)),
+            'startX': int(kwargs.pop("startX", 0)),
+            'startY': int(kwargs.pop("startY", 0)),
+            'endX': int(kwargs.pop("endX", 0)),
+            'endY': int(kwargs.pop("endY", 0)),
+            'durationMs': int(kwargs.pop("durationMs", 5000)),
+            'button': str(kwargs.pop("button", "left")),
+            'smoothPointerMove': str(kwargs.pop('smoothPointerMove', 'linear'))
         }
 
         self._apply_modifier_keys(drag_params, kwargs.get("modifierKeys"))
 
         def func():
             if start_locator:
-                start_element = self._element_find(start_locator, True, False)
-                if start_element:
-                    drag_params["startElementId"] = start_element.id
+                drag_params['startElementId'] = self._element_find(start_locator, True, True).id
+                if drag_params['startX'] == 0:
                     drag_params.pop("startX", None)
+                if drag_params['startY'] == 0:
                     drag_params.pop("startY", None)
 
             if end_locator:
-                end_element = self._element_find(end_locator, True, False)
-                if end_element:
-                    drag_params["endElementId"] = end_element.id
+                drag_params['endElementId'] = self._element_find(end_locator, True, True).id
+                if drag_params['endX'] == 0:
                     drag_params.pop("endX", None)
+                if drag_params['endY'] == 0:
                     drag_params.pop("endY", None)
 
-            self._current_application().execute_script("windows: clickAndDrag", drag_params)
+            self._info(f"Drag params {drag_params}")
+            self._current_application().execute_script('windows: clickAndDrag', drag_params)
             time.sleep(0.5)
 
         self._retry(
@@ -279,21 +274,57 @@ class _WindowsKeywords(KeywordGroup):
             return_value=kwargs.pop("return_value", True),
             poll_interval=kwargs.pop("poll_interval", None)
         )
+    
+    def _appium_scroll_api(self, locator, timeout, **kwargs):
+        """
+        Perform a scroll action using Appium Windows Driver.
+        https://github.com/nguyenvanhuy0612/appium-novawindows2-driver?tab=readme-ov-file#windows-scroll
+        """
+        scroll_params = {
+            "x": int(kwargs.pop("x", 0)),
+            "y": int(kwargs.pop("y", 0)),
+            "deltaX": int(kwargs.pop("deltaX", 0)),
+            "deltaY": int(kwargs.pop("deltaY", 0)),
+        }
+
+        self._apply_modifier_keys(scroll_params, kwargs.get("modifierKeys"))
+
+        def func():
+            if locator:
+                scroll_params["elementId"] = self._element_find(locator, True, True).id
+                if scroll_params["x"] == 0:
+                    scroll_params.pop("x", None)
+                if scroll_params["y"] == 0:
+                    scroll_params.pop("y", None)
+
+            self._info(f"Scroll params {scroll_params}")
+            self._current_application().execute_script("windows: scroll", scroll_params)
+            time.sleep(0.5)
+
+        return self._retry(
+            timeout,
+            func,
+            action="Failed to perform scroll action",
+            required=kwargs.pop("required", True),
+            return_value=kwargs.pop("return_value", True),
+            poll_interval=kwargs.pop("poll_interval", None)
+        )
 
     def _appium_keys_api(self, text, **kwargs):
         """
         Perform a key input action using Appium Windows Driver.
-        https://github.com/appium/appium-windows-driver?tab=readme-ov-file#windows-keys
+        https://github.com/nguyenvanhuy0612/appium-novawindows2-driver?tab=readme-ov-file#windows-keys
 
-        @param text:
-        @param kwargs:
-        @return:
+        @param text: The text to input
+        @param kwargs: Additional parameters
+        @return: None
         """
-        actions = kwargs.get("actions", "")
+        actions = kwargs.get("actions", [])
         # pause = int(kwargs.get("pause", 0))
         # virtual_key_code = int(kwargs.get("virtualKeyCode", 0))
         # down = bool(kwargs.get("down", False))
         if not actions:
             actions = [{"text": text}]
         self._current_application().execute_script("windows: keys", {"actions": actions})
-        time.sleep(0.5)
+        sleep = kwargs.pop("sleep", 0.5)
+        time.sleep(sleep)
