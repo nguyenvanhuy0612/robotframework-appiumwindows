@@ -171,7 +171,7 @@ class _ElementKeywords(KeywordGroup):
             poll_interval=None
         )
 
-    def appium_first_found_elements(self, *locators, timeout=None):
+    def appium_first_found_elements(self, *locators, timeout=None, index_only=True):
         self._info(f"Appium First Found Elements '{locators}', timeout {timeout}")
 
         def func():
@@ -179,17 +179,20 @@ class _ElementKeywords(KeywordGroup):
                 elements = self._element_find(locator, False, False)
                 if elements:
                     self._info(f"Element '{locator}' exist, return {index}")
-                    return index
+                    return index if index_only else (index, elements[0])
             raise Exception(f"None of the elements {locators} found yet")
 
-        return self._retry(
+        result = self._retry(
             timeout,
             func,
             action=f"Find first existing element from {locators}",
             required=False,
             return_value=True,
             poll_interval=None
-        ) or -1
+        )
+        if result is None:
+            return -1 if index_only else (-1, None)
+        return result
 
     # TODO FIND ELEMENT
     def appium_get_element(self, locator, timeout=None, required=True):
