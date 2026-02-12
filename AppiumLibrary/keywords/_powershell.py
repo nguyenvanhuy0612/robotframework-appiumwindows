@@ -572,7 +572,7 @@ class _PowershellKeywords(KeywordGroup):
         return ps_cmd
 
     def _generate_keyboard_command(self, sequences):
-        raise Exception('Not Implement yet')
+        raise NotImplementedError('Not Implement yet')
 
     def _script_path(self, name):
-        return Exception('Not Implement yet')
+        raise NotImplementedError('Not Implement yet')

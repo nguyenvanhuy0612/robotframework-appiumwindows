@@ -2,12 +2,9 @@
 import ast
 import re
 import time
-from dataclasses import dataclass
-from typing import Any, Optional
 
 from robot.libraries.BuiltIn import BuiltIn
 from robot.utils import timestr_to_secs
-from selenium.common import StaleElementReferenceException, NoSuchElementException, WebDriverException
 from selenium.webdriver import Keys
 from selenium.webdriver.remote.webelement import WebElement
 from unicodedata import normalize
@@ -172,6 +169,22 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_first_found_elements(self, *locators, timeout=None, index_only=True):
+        """Find the first existing element from a list of locators.
+
+        Iterates through ``locators`` and returns the index (and optionally the
+        element) of the first one that is present on the page.
+
+        Arguments:
+        - ``*locators``:   One or more locator strings to try in order.
+        - ``timeout``:     Maximum time to keep retrying (default: library timeout).
+        - ``index_only``:  If True, return only the index. If False, return a
+                           tuple ``(index, element)``.
+
+        Returns:
+        - ``index_only=True``:  the 0-based index, or ``-1`` if nothing found.
+        - ``index_only=False``: a tuple ``(index, element)``, or ``(-1, None)``
+          if nothing found.
+        """
         self._info(f"Appium First Found Elements '{locators}', timeout {timeout}")
 
         def func():
@@ -1088,7 +1101,7 @@ class _ElementKeywords(KeywordGroup):
             attr_val = elements[0].get_attribute(attribute)
             self._info("Element '%s' attribute '%s' value '%s' " % (locator, attribute, attr_val))
             return attr_val
-        except:
+        except Exception:
             raise AssertionError("Attribute '%s' is not valid for element '%s'" % (attribute, locator))
 
     def get_element_location(self, locator):

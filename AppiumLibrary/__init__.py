@@ -7,6 +7,7 @@ __version__ = VERSION
 
 
 class AppiumLibrary(
+    _ActionChainsKeywords,
     _LoggingKeywords,
     _RunOnFailureKeywords,
     _ElementKeywords,
@@ -15,7 +16,8 @@ class AppiumLibrary(
     _ScreenshotKeywords,
     _ApplicationManagementKeywords,
     _WaitingKeywords,
-    _ScreenrecordKeywords
+    _ScreenrecordKeywords,
+    _TableKeywords
 ):
     """AppiumLibrary is a Mobile App testing library for Robot Framework.
 

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import base64
 import inspect
-import os
 
 import robot
 from appium import webdriver
@@ -474,8 +473,9 @@ class _ApplicationManagementKeywords(KeywordGroup):
 
     def get_contexts(self):
         """Get available contexts."""
-        print(self._current_application().contexts)
-        return self._current_application().contexts
+        contexts = self._current_application().contexts
+        self._info(contexts)
+        return contexts
 
     def get_window_height(self):
         """Get current device height.
@@ -560,8 +560,9 @@ class _ApplicationManagementKeywords(KeywordGroup):
 
     def get_windows(self):
         """Get available Webview windows."""
-        print(self._current_application().window_handles)
-        return self._current_application().window_handles
+        windows = self._current_application().window_handles
+        self._info(windows)
+        return windows
 
     # Private
 

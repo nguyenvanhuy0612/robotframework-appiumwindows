@@ -32,7 +32,7 @@ class _LoggingKeywords(KeywordGroup):
 
     def _warn(self, message):
         if self._log_level in self.LOG_LEVEL_WARN:
-            logger.warn(message)
+            logger.warning(message)
 
     def _html(self, message):
         logger.info(message, True, False)

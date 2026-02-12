@@ -5,7 +5,7 @@ from base64 import b64decode
 
 import robot
 
-from .keywordgroup import KeywordGroup, ignore_on_fail
+from .keywordgroup import KeywordGroup
 
 
 class _ScreenshotKeywords(KeywordGroup):
@@ -55,7 +55,6 @@ class _ScreenshotKeywords(KeywordGroup):
 
         return base64data
 
-    @ignore_on_fail
     def appium_get_screenshot(self):
         return self.appium_capture_page_screenshot(None, False)
 

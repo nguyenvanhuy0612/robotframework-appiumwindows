@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from ._actionchains import _ActionChainsKeywords
 from ._applicationmanagement import _ApplicationManagementKeywords
 from ._element import _ElementKeywords
 from ._logging import _LoggingKeywords
@@ -7,10 +8,12 @@ from ._powershell import _PowershellKeywords
 from ._runonfailure import _RunOnFailureKeywords
 from ._screenrecord import _ScreenrecordKeywords
 from ._screenshot import _ScreenshotKeywords
+from ._table import _TableKeywords
 from ._waiting import _WaitingKeywords
 from ._windows import _WindowsKeywords
 
-__all__ = ["_LoggingKeywords",
+__all__ = ["_ActionChainsKeywords",
+           "_LoggingKeywords",
            "_RunOnFailureKeywords",
            "_ElementKeywords",
            "_PowershellKeywords",
@@ -18,4 +21,5 @@ __all__ = ["_LoggingKeywords",
            "_ScreenshotKeywords",
            "_ApplicationManagementKeywords",
            "_WaitingKeywords",
-           "_ScreenrecordKeywords"]
+           "_ScreenrecordKeywords",
+           "_TableKeywords"]
