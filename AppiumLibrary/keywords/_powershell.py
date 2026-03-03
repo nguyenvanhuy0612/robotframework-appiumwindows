@@ -318,123 +318,97 @@ class _PowershellKeywords(KeywordGroup):
 
         return base64data
 
-    def appium_transfer_file(self, file_path, remote_path):
+    def appium_transfer_file(self, file_path, remote_path, chunk_size_kb: int = 15360):
         """
-        Streams a binary file, base64-encodes it chunk by chunk,
-        and sends it directly to a remote machine via PowerShell commands.
-
-        Powershell command must be allowed. eg: appium --relaxed-security
-
-        file_path: source file path, eg: c:/users/user1/desktop/screenshot_file.png
-        remote_path: destination path, eg: c:/users/user1/download/screenshot_file.png
-        """
-        file_path = Path(file_path)
-        remote_path = str(remote_path)
-        remote_b64_path = remote_path + ".b64.tmp"
-        chunk_size = 6000  # chunk size in raw bytes (will expand when base64 encoded)
-
-        # 1. Ensure remote parent directory exists
-        remote_directory = str(Path(remote_path).parent)
-        mkdir_cmd = f'New-Item -Path "{remote_directory}" -ItemType Directory -Force'
-        self.execute_script("powerShell", command=mkdir_cmd)
-        self._info(f"Ensured remote directory: {remote_directory}")
-
-        # 2. Open and stream file, encoding and sending each chunk
-        with open(file_path, "rb") as f:
-            chunk_index = 0
-            while True:
-                chunk = f.read(chunk_size)
-                if not chunk:
-                    break
-                chunk_b64 = base64.b64encode(chunk).decode('utf-8')
-                escaped_chunk = chunk_b64.replace("`", "``").replace('"', '`"')
-                ps = f'Add-Content -Path "{remote_b64_path}" -Value "{escaped_chunk}"'
-                self.execute_script("powerShell", command=ps)
-                chunk_index += 1
-                self._info(f"Sent chunk {chunk_index}")
-
-        # 3. Decode and write binary file on remote side
-        decode_script = (
-            f'[IO.File]::WriteAllBytes("{remote_path}";'
-            f'[Convert]::FromBase64String((Get-Content "{remote_b64_path}" -Raw)))'
-        )
-        self.execute_script("powerShell", command=decode_script)
-        self._info(f"File written to: {remote_path}")
-
-        # 4. Optional cleanup
-        cleanup_script = f'Remove-Item "{remote_b64_path}" -ErrorAction SilentlyContinue'
-        self.execute_script("powerShell", command=cleanup_script)
-        self._info("Cleaned up temporary base64 file.")
-
-    def appium_split_and_push_file(self, source_path: str, remote_path: str, chunk_size_mb: int = 20):
-        """
-        Splits a binary file into chunks, pushes each to a remote machine via Appium,
-        then executes a PowerShell script remotely to recombine and clean up chunk files.
+        Transfers a file of any size from the local machine to the remote machine.
+        It breaks the file into chunks, base64 encodes them, and sends them via PowerShell
+        to avoid Appium PUSH_FILE limitations on WinAppDriver.
 
         Powershell command must be allowed. eg: appium --relaxed-security
 
         Parameters:
-            source_path (str): Local path to the binary file.
-            remote_path (str): Full remote file path to create from recombination.
-            chunk_size_mb (int): Size of each chunk in MB (default: 20MB).
+            file_path (str): Local path to the file.
+            remote_path (str): Full remote file path to create.
+            chunk_size_kb (int): Size of each chunk in KB (default: 15360KB (15MB) - optimized for NovaWindows2)
         """
-        chunk_size = chunk_size_mb * 1024 * 1024
-        file_size = os.path.getsize(source_path)
+        file_path = Path(file_path)
+        remote_path = str(remote_path)
+        file_name = file_path.name
+        file_size = os.path.getsize(file_path)
+        chunk_size = chunk_size_kb * 1024
+        
+        # NovaWindows2 supports large payload strings natively.
+        # We use a default chunk size of 15MB to maximize speed while staying within PS limits.
+        
+        # Use ntpath to correctly parse Windows paths regardless of where the Python script executes
+        import ntpath
+        remote_dir = ntpath.dirname(remote_path.replace('/', '\\'))
+        escaped_dir = remote_dir.replace("'", "''")
+        
+        # 1. Ensure remote parent directory exists safely
+        if remote_dir:
+            mkdir_cmd = f"if (-not (Test-Path -LiteralPath '{escaped_dir}')) {{ New-Item -Path '{escaped_dir}' -ItemType Directory -Force }}"
+            self.execute_script("powerShell", command=mkdir_cmd)
+            self._info(f"Ensured remote directory: {remote_dir}")
 
-        file_name = os.path.basename(source_path)
-        remote_dir = os.path.dirname(remote_path)
-        total_chunks = math.ceil(file_size / chunk_size)
-        # chunk_index_digits = max(4, len(str(total_chunks - 1)))  # at least 4 digits
-        chunk_index_digits = len(str(total_chunks - 1))
+        if file_size == 0:
+            escaped_out = remote_path.replace("'", "''")
+            ps = f"Set-Content -LiteralPath '{escaped_out}' -Value $null"
+            self.execute_script("powerShell", command=ps)
+            self._info(f"Transferred empty file '{file_name}' to '{remote_path}'")
+            return escaped_out
 
-        self._info(f"Splitting '{file_name}' ({file_size} bytes) into {total_chunks} chunks of {chunk_size_mb}MB each")
+        total_chunks = max(1, math.ceil(file_size / chunk_size))
+        pad_digits = len(str(max(total_chunks - 1, 1)))
 
-        # Step 1: Split and push chunks
-        with open(source_path, "rb") as f:
+        self._info(f"Transferring '{file_name}' ({file_size} bytes) in {total_chunks} chunks of {chunk_size_kb}KB each")
+
+        # 2. Open and stream file, encoding and sending each chunk directly to part files
+        with open(file_path, "rb") as f:
             for index in range(total_chunks):
                 chunk = f.read(chunk_size)
                 if not chunk:
                     break
 
-                b64_chunk = base64.b64encode(chunk).decode("utf-8")
-                chunk_suffix = f"{index:0{chunk_index_digits}d}"
-                remote_chunk_path = os.path.join(remote_dir, f"{file_name}.part{chunk_suffix}")
+                chunk_b64 = base64.b64encode(chunk).decode('utf-8')
 
-                self.appium_push_file(destination_path=remote_chunk_path, base64data=b64_chunk)
-                self._info(f"Pushed chunk {chunk_suffix} to {remote_chunk_path}")
+                chunk_suffix = f"{index:0{pad_digits}d}"
+                remote_chunk_b64 = f"{remote_path}.part{chunk_suffix}.b64"
+                escaped_chunk_path = remote_chunk_b64.replace("'", "''")
+                
+                # Send the base64 string directly in one command.
+                # Use -LiteralPath to avoid PowerShell parsing brackets [] in the path as wildcards.
+                ps = f"Set-Content -LiteralPath '{escaped_chunk_path}' -Value '{chunk_b64}'"
+                
+                self.execute_script("powerShell", command=ps)
+                self._info(f"Sent chunk {index+1}/{total_chunks} ({len(chunk_b64)} b64 bytes)")
 
-        # Step 2: Build PowerShell recombine script
-        escaped_dir = remote_dir.replace("'", "''")
+        # 3. Decode all b64 chunks and recombine into the final binary file on the remote machine
         escaped_out = remote_path.replace("'", "''")
         escaped_base = file_name.replace("'", "''")
-        pad_format = f"D{chunk_index_digits}"
 
+        # PowerShell script to decode and combine chunks securely
         ps_script_lines = [
             f"$out = [System.IO.File]::OpenWrite('{escaped_out}')",
             "$out.SetLength(0)",
             f"for ($i = 0; $i -lt {total_chunks}; $i++) {{",
-            f"    $chunkName = '{escaped_base}.part' + $i.ToString('{pad_format}')",
+            f"    $chunkName = '{escaped_base}.part' + $i.ToString('D{pad_digits}') + '.b64'",
             f"    $chunkPath = Join-Path '{escaped_dir}' $chunkName",
-            '    if (-not (Test-Path $chunkPath)) { throw "Missing chunk: $chunkPath" }',
-            "    $in = [System.IO.File]::OpenRead($chunkPath)",
-            "    $buffer = New-Object byte[] (1MB)",
-            "    while (($n = $in.Read($buffer, 0, $buffer.Length)) -gt 0) {",
-            "        $out.Write($buffer, 0, $n)",
-            "    }",
-            "    $in.Close()",
+            "    if (-not (Test-Path -LiteralPath $chunkPath)) { throw \"Missing chunk: $chunkPath\" }",
+            "    $b64 = Get-Content -LiteralPath $chunkPath -Raw",
+            "    $bytes = [Convert]::FromBase64String($b64)",
+            "    $out.Write($bytes, 0, $bytes.Length)",
             "}",
             "$out.Close()",
             f"for ($i = 0; $i -lt {total_chunks}; $i++) {{",
-            f"    $chunkName = '{escaped_base}.part' + $i.ToString('{pad_format}')",
+            f"    $chunkName = '{escaped_base}.part' + $i.ToString('D{pad_digits}') + '.b64'",
             f"    $chunkPath = Join-Path '{escaped_dir}' $chunkName",
-            "    Remove-Item -Path $chunkPath -Force -ErrorAction SilentlyContinue",
+            "    Remove-Item -LiteralPath $chunkPath -Force -ErrorAction SilentlyContinue",
             "}",
-            f"Write-Output 'Combine and cleanup complete: {escaped_out}'"
+            f"Write-Output 'Transfer complete: {escaped_out}'"
         ]
 
         ps_script = "\n".join(ps_script_lines)
-
-        # Step 3: Execute recombine script remotely
         self._info("Combining chunks and cleaning up on remote machine...")
         result = self.appium_execute_powershell_script(ps_script)
         self._info(f"Remote PowerShell result: {result}")
