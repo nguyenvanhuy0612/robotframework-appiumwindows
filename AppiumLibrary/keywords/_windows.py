@@ -111,8 +111,9 @@ class _WindowsKeywords(KeywordGroup):
         return path.rstrip()
 
     # Private
-    def _apply_modifier_keys(self, params: dict, modifier_keys):
+    def _apply_modifier_keys(self, params: dict, kwargs: dict):
         """Normalize modifier keys and update params in place."""
+        modifier_keys = kwargs.get("modifierKeys") or kwargs.get("modifier_keys")
         if modifier_keys:
             if isinstance(modifier_keys, (list, tuple)):
                 params["modifierKeys"] = [str(k).lower() for k in modifier_keys]
@@ -165,19 +166,21 @@ class _WindowsKeywords(KeywordGroup):
             "y": int(kwargs.pop("y", 0)) + int(kwargs.pop("y_offset", 0)),
         }
 
-        self._apply_modifier_keys(click_params, kwargs.get("modifierKeys"))
+        self._apply_modifier_keys(click_params, kwargs)
+        post_delay = float(kwargs.pop("post_delay", 0.5))
 
         def func():
+            params = click_params.copy()
             if locator:
-                click_params["elementId"] = self._element_find(locator, True, True).id
-                if click_params["x"] == 0:
-                    click_params.pop("x", None)
-                if click_params["y"] == 0:
-                    click_params.pop("y", None)
+                params["elementId"] = self._element_find(locator, True, True).id
+                if params.get("x") == 0:
+                    params.pop("x", None)
+                if params.get("y") == 0:
+                    params.pop("y", None)
 
-            self._info(f"Click params {click_params}")
-            self._current_application().execute_script("windows: click", click_params)
-            time.sleep(0.5)
+            self._info(f"Click params {params}")
+            self._current_application().execute_script("windows: click", params)
+            time.sleep(post_delay)
 
         return self._retry(
             timeout,
@@ -200,26 +203,28 @@ class _WindowsKeywords(KeywordGroup):
             "durationMs": int(kwargs.pop("durationMs", 100)),
         }
 
-        self._apply_modifier_keys(hover_params, kwargs.get("modifierKeys"))
+        self._apply_modifier_keys(hover_params, kwargs)
+        post_delay = float(kwargs.pop("post_delay", 0.5))
 
         def func():
+            params = hover_params.copy()
             if start_locator:
-                hover_params["startElementId"] = self._element_find(start_locator, True, True).id
-                if hover_params["startX"] == 0:
-                    hover_params.pop("startX", None)
-                if hover_params["startY"] == 0:
-                    hover_params.pop("startY", None)
+                params["startElementId"] = self._element_find(start_locator, True, True).id
+                if params.get("startX") == 0:
+                    params.pop("startX", None)
+                if params.get("startY") == 0:
+                    params.pop("startY", None)
 
             if end_locator:
-                hover_params["endElementId"] = self._element_find(end_locator, True, True).id
-                if hover_params["endX"] == 0:
-                    hover_params.pop("endX", None)
-                if hover_params["endY"] == 0:
-                    hover_params.pop("endY", None)
+                params["endElementId"] = self._element_find(end_locator, True, True).id
+                if params.get("endX") == 0:
+                    params.pop("endX", None)
+                if params.get("endY") == 0:
+                    params.pop("endY", None)
 
-            self._info(f"Hover params {hover_params}")
-            self._current_application().execute_script("windows: hover", hover_params)
-            time.sleep(0.5)
+            self._info(f"Hover params {params}")
+            self._current_application().execute_script("windows: hover", params)
+            time.sleep(post_delay)
 
         self._retry(
             timeout,
@@ -245,26 +250,28 @@ class _WindowsKeywords(KeywordGroup):
             'smoothPointerMove': str(kwargs.pop('smoothPointerMove', 'linear'))
         }
 
-        self._apply_modifier_keys(drag_params, kwargs.get("modifierKeys"))
+        self._apply_modifier_keys(drag_params, kwargs)
+        post_delay = float(kwargs.pop("post_delay", 0.5))
 
         def func():
+            params = drag_params.copy()
             if start_locator:
-                drag_params['startElementId'] = self._element_find(start_locator, True, True).id
-                if drag_params['startX'] == 0:
-                    drag_params.pop("startX", None)
-                if drag_params['startY'] == 0:
-                    drag_params.pop("startY", None)
+                params['startElementId'] = self._element_find(start_locator, True, True).id
+                if params.get('startX') == 0:
+                    params.pop("startX", None)
+                if params.get('startY') == 0:
+                    params.pop("startY", None)
 
             if end_locator:
-                drag_params['endElementId'] = self._element_find(end_locator, True, True).id
-                if drag_params['endX'] == 0:
-                    drag_params.pop("endX", None)
-                if drag_params['endY'] == 0:
-                    drag_params.pop("endY", None)
+                params['endElementId'] = self._element_find(end_locator, True, True).id
+                if params.get('endX') == 0:
+                    params.pop("endX", None)
+                if params.get('endY') == 0:
+                    params.pop("endY", None)
 
-            self._info(f"Drag params {drag_params}")
-            self._current_application().execute_script('windows: clickAndDrag', drag_params)
-            time.sleep(0.5)
+            self._info(f"Drag params {params}")
+            self._current_application().execute_script('windows: clickAndDrag', params)
+            time.sleep(post_delay)
 
         self._retry(
             timeout,
@@ -287,19 +294,21 @@ class _WindowsKeywords(KeywordGroup):
             "deltaY": int(kwargs.pop("deltaY", 0)),
         }
 
-        self._apply_modifier_keys(scroll_params, kwargs.get("modifierKeys"))
+        self._apply_modifier_keys(scroll_params, kwargs)
+        post_delay = float(kwargs.pop("post_delay", 0.5))
 
         def func():
+            params = scroll_params.copy()
             if locator:
-                scroll_params["elementId"] = self._element_find(locator, True, True).id
-                if scroll_params["x"] == 0:
-                    scroll_params.pop("x", None)
-                if scroll_params["y"] == 0:
-                    scroll_params.pop("y", None)
+                params["elementId"] = self._element_find(locator, True, True).id
+                if params.get("x") == 0:
+                    params.pop("x", None)
+                if params.get("y") == 0:
+                    params.pop("y", None)
 
-            self._info(f"Scroll params {scroll_params}")
-            self._current_application().execute_script("windows: scroll", scroll_params)
-            time.sleep(0.5)
+            self._info(f"Scroll params {params}")
+            self._current_application().execute_script("windows: scroll", params)
+            time.sleep(post_delay)
 
         return self._retry(
             timeout,
@@ -326,5 +335,5 @@ class _WindowsKeywords(KeywordGroup):
         if not actions:
             actions = [{"text": text}]
         self._current_application().execute_script("windows: keys", {"actions": actions})
-        sleep = kwargs.pop("sleep", 0.5)
-        time.sleep(sleep)
+        sleep = kwargs.pop("sleep", kwargs.pop("post_delay", 0.5))
+        time.sleep(float(sleep))

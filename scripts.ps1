@@ -26,11 +26,4 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-# Optional: Publish to PyPI
-$choice = Read-Host "Do you want to publish to PyPI now? (y/n)"
-if ($choice -eq 'y') {
-    Write-Host "Publishing to PyPI..." -ForegroundColor Cyan
-    python -m twine upload dist/*
-} else {
-    Write-Host "Skipping upload." -ForegroundColor Yellow
-}
+python -m twine upload dist/*
