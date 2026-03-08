@@ -1262,7 +1262,10 @@ class _ElementKeywords(KeywordGroup):
             return result if return_value else True
 
         if required:
-            raise TimeoutError(f"{action} failed after {timeout}s") from last_exception
+            msg = f"{action} failed after {timeout}s"
+            if last_exception:
+                msg += f". Error: {last_exception}"
+            raise TimeoutError(msg) from last_exception
 
         return None if return_value else False
 
