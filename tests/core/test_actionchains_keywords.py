@@ -1,13 +1,13 @@
-
 import unittest
 import sys
 import os
 sys.path.append(os.getcwd())
 from unittest.mock import MagicMock, patch, call
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 from AppiumLibrary.keywords._actionchains import _ActionChainsKeywords
-import appium.webdriver
+import appium.webdriver.webdriver
 
 
 class TestResolveKey(unittest.TestCase):
@@ -57,11 +57,12 @@ class TestResolveElement(unittest.TestCase):
         self.assertIsNone(self.ak._resolve_element(None))
 
     def test_resolve_webelement_returns_same(self):
-        mock_el = MagicMock(spec=WebElement)
+        mock_el = MagicMock()
+        self.ak._element_find = MagicMock(return_value=mock_el)
         self.assertIs(self.ak._resolve_element(mock_el), mock_el)
 
     def test_resolve_string_calls_element_find(self):
-        mock_el = MagicMock(spec=WebElement)
+        mock_el = MagicMock()
         self.ak._element_find = MagicMock(return_value=mock_el)
         result = self.ak._resolve_element("name=MyElement")
         self.assertIs(result, mock_el)
@@ -97,10 +98,10 @@ class TestOneShotKeywords(unittest.TestCase):
         self.ak._info = MagicMock()
         self.ak._debug = MagicMock()
 
-        self.mock_driver = MagicMock(spec=appium.webdriver.Remote)
+        self.mock_driver = MagicMock()
         self.ak._current_application = MagicMock(return_value=self.mock_driver)
 
-        self.mock_element = MagicMock(spec=WebElement)
+        self.mock_element = MagicMock()
         self.ak._element_find = MagicMock(return_value=self.mock_element)
 
     def tearDown(self):
@@ -175,7 +176,7 @@ class TestOneShotKeywords(unittest.TestCase):
     def test_action_drag_and_drop(self, MockAC):
         mock_chain = MockAC.return_value
         mock_chain.drag_and_drop.return_value = mock_chain
-        mock_target = MagicMock(spec=WebElement)
+        mock_target = MagicMock()
         self.ak._element_find = MagicMock(side_effect=[self.mock_element, mock_target])
         self.ak.appium_action_drag_and_drop("name=Src", "name=Tgt")
         mock_chain.drag_and_drop.assert_called_once_with(self.mock_element, mock_target)
@@ -260,10 +261,10 @@ class TestChainBuilderKeywords(unittest.TestCase):
         self.ak._info = MagicMock()
         self.ak._debug = MagicMock()
 
-        self.mock_driver = MagicMock(spec=appium.webdriver.Remote)
+        self.mock_driver = MagicMock()
         self.ak._current_application = MagicMock(return_value=self.mock_driver)
 
-        self.mock_element = MagicMock(spec=WebElement)
+        self.mock_element = MagicMock()
         self.ak._element_find = MagicMock(return_value=self.mock_element)
 
     def tearDown(self):
@@ -388,7 +389,7 @@ class TestChainBuilderKeywords(unittest.TestCase):
     @patch('AppiumLibrary.keywords._actionchains.ActionChains')
     def test_chain_drag_and_drop(self, MockAC):
         mock_chain = MockAC.return_value
-        mock_target = MagicMock(spec=WebElement)
+        mock_target = MagicMock()
         self.ak._element_find = MagicMock(side_effect=[self.mock_element, mock_target])
         self.ak.appium_begin_action_chain()
         self.ak.appium_chain_drag_and_drop("name=Src", "name=Tgt")

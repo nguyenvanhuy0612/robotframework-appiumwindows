@@ -1,71 +1,11 @@
 
 import unittest
-from unittest.mock import MagicMock, patch, call
 import sys
-import types
+import os
+sys.path.append(os.getcwd())
+from unittest.mock import MagicMock, patch, call
 
-# =================================================================================
-# 1. SETUP DETAILED MOCKS
-# =================================================================================
-
-# Robot Framework Mocks
-mock_robot = types.ModuleType("robot")
-mock_robot_libraries = types.ModuleType("robot.libraries")
-mock_builtin = types.ModuleType("robot.libraries.BuiltIn")
-mock_robot_utils = types.ModuleType("robot.utils")
-mock_robot_api = types.ModuleType("robot.api")
-
-sys.modules["robot"] = mock_robot
-sys.modules["robot.libraries"] = mock_robot_libraries
-sys.modules["robot.libraries.BuiltIn"] = mock_builtin
-sys.modules["robot.utils"] = mock_robot_utils
-sys.modules["robot.api"] = mock_robot_api
-
-# Mock BuiltIn class and exception
-class MockBuiltIn:
-    def get_variable_value(self, name, default=None):
-        return default
-    def log(self, *args, **kwargs):
-        pass
-    def should_be_equal(self, first, second, msg=None, values=True):
-        if first != second:
-            raise AssertionError(msg or f"{first} != {second}")
-    def should_match(self, string, pattern, msg=None, values=True):
-        # weak mock for glob match
-        if pattern not in string: 
-             pass # In real Robot this is complex, here we assume success or raise
-    def should_match_regexp(self, string, pattern, msg=None, values=True):
-         pass
-
-mock_builtin.BuiltIn = MagicMock(return_value=MockBuiltIn())
-mock_builtin.RobotNotRunningError = Exception
-mock_robot_utils.timestr_to_secs = MagicMock(return_value=1.0)
-mock_robot_utils.abspath = MagicMock(return_value="/mock/path")
-mock_robot_utils.ConnectionCache = MagicMock()
-mock_robot_api.logger = MagicMock()
-
-# Selenium Mocks
-mock_selenium = types.ModuleType("selenium")
-mock_selenium_common = types.ModuleType("selenium.common")
-mock_selenium_webdriver = types.ModuleType("selenium.webdriver")
-mock_selenium_remote = types.ModuleType("selenium.webdriver.remote")
-mock_selenium_webelement = types.ModuleType("selenium.webdriver.remote.webelement")
-
-sys.modules["selenium"] = mock_selenium
-sys.modules["selenium.common"] = mock_selenium_common
-sys.modules["selenium.webdriver"] = mock_selenium_webdriver
-sys.modules["selenium.webdriver.remote"] = mock_selenium_remote
-sys.modules["selenium.webdriver.remote.webelement"] = mock_selenium_webelement
-
-mock_selenium_common.StaleElementReferenceException = Exception
-mock_selenium_common.NoSuchElementException = Exception
-mock_selenium_common.WebDriverException = Exception
-mock_selenium_common.InvalidArgumentException = Exception
-# FIX: Keys must return strings for regex ops
-class MockKeys:
-    def __getattr__(self, name):
-        return f"{{{{ {name} }}}}"
-mock_selenium_webdriver.Keys = MockKeys()
+from AppiumLibrary.keywords._element import _ElementKeywords
 
 class MockWebElement:
     def __init__(self, name="mock_element", text="mock_text", displayed=True, enabled=True):
@@ -106,54 +46,14 @@ class MockWebElement:
     def __repr__(self):
         return f"<MockWebElement {self.name}>"
 
-mock_selenium_webelement.WebElement = MockWebElement
-
-# Appium Mocks
-mock_appium = types.ModuleType("appium")
-sys.modules["appium"] = mock_appium
-mock_appium_webdriver = types.ModuleType("appium.webdriver")
-sys.modules["appium.webdriver"] = mock_appium_webdriver
-mock_appium.webdriver = mock_appium_webdriver
-mock_appium_options = types.ModuleType("appium.options")
-sys.modules["appium.options"] = mock_appium_options
-mock_appium_options_common = types.ModuleType("appium.options.common")
-sys.modules["appium.options.common"] = mock_appium_options_common
-mock_appium_options_common.AppiumOptions = MagicMock()
-mock_appium_webdriver_common = types.ModuleType("appium.webdriver.common")
-sys.modules["appium.webdriver.common"] = mock_appium_webdriver_common
-mock_appium_webdriver_common_appiumby = types.ModuleType("appium.webdriver.common.appiumby")
-sys.modules["appium.webdriver.common.appiumby"] = mock_appium_webdriver_common_appiumby
-mock_appium_webdriver_common_appiumby.AppiumBy = MagicMock()
-mock_appium_webdriver_mobilecommand = types.ModuleType("appium.webdriver.mobilecommand")
-sys.modules["appium.webdriver.mobilecommand"] = mock_appium_webdriver_mobilecommand
-mock_appium_webdriver.mobilecommand = mock_appium_webdriver_mobilecommand
-mock_appium_webdriver_mobilecommand.MobileCommand = MagicMock()
-
-# AppiumLibrary Locators Mock
-mock_appiumlibrary_locators = types.ModuleType("AppiumLibrary.locators")
-sys.modules["AppiumLibrary.locators"] = mock_appiumlibrary_locators
-
-class MockElementFinder:
-    def find(self, application, locator, tag):
-        # We will override this in setUp usually
-        return []
-
-mock_appiumlibrary_locators.ElementFinder = MagicMock(return_value=MockElementFinder())
-
-# Import Target
-import os
-sys.path.append(os.getcwd())
-try:
-    from AppiumLibrary.keywords._element import _ElementKeywords
-except ImportError:
-    # If standard import fails, try patching sys.modules for AppiumLibrary package if strictly needed
-    # But usually creating the mock modules above is enough if the file structure is correct.
-    pass
-
 class TestElementKeywordsMock(unittest.TestCase):
 
     def setUp(self):
         self.ek = _ElementKeywords()
+        self.ek._sleep_between_wait = 0.1
+        self.ek._timeout_in_secs = 5
+        self.ek._log_level = 'DEBUG'
+        self.ek._run_on_failure_keyword = 'Capture Page Screenshot'
         self.ek._element_finder = MagicMock()
         
         mock_app = MagicMock()

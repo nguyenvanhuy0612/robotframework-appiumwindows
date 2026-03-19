@@ -6,7 +6,7 @@ sys.path.append(os.getcwd())
 from unittest.mock import MagicMock, patch, call
 from AppiumLibrary.keywords._table import _TableKeywords
 from selenium.webdriver.remote.webelement import WebElement
-import appium.webdriver
+import appium.webdriver.webdriver
 
 
 class TestTableKeywords(unittest.TestCase):
@@ -20,7 +20,7 @@ class TestTableKeywords(unittest.TestCase):
 
         self.tk = _TableKeywords()
         self.tk._timeout_in_secs = 5
-        self.tk._poll_sleep_between_wait = 0.1
+        self.tk._sleep_between_wait = 0.1
 
         # Mock mixin methods
         self.tk._get_platform = MagicMock(return_value='windows')
@@ -31,7 +31,7 @@ class TestTableKeywords(unittest.TestCase):
         self.tk._warn = MagicMock()
 
         # Mock driver
-        self.mock_driver = MagicMock(spec=appium.webdriver.Remote)
+        self.mock_driver = MagicMock()
         self.tk._current_application = MagicMock(return_value=self.mock_driver)
 
         # Build mock table structure
@@ -40,41 +40,41 @@ class TestTableKeywords(unittest.TestCase):
     def _build_mock_table(self):
         """Create mock elements simulating a table with headers and rows."""
         # Table element
-        self.mock_table = MagicMock(spec=WebElement)
+        self.mock_table = MagicMock()
 
         # Header items
-        self.mock_header1 = MagicMock(spec=WebElement)
+        self.mock_header1 = MagicMock()
         self.mock_header1.get_attribute.return_value = "Name"
-        self.mock_header2 = MagicMock(spec=WebElement)
+        self.mock_header2 = MagicMock()
         self.mock_header2.get_attribute.return_value = "Size"
-        self.mock_header3 = MagicMock(spec=WebElement)
+        self.mock_header3 = MagicMock()
         self.mock_header3.get_attribute.return_value = "Status"
 
         # Row elements
-        self.mock_row1 = MagicMock(spec=WebElement)
-        self.mock_row2 = MagicMock(spec=WebElement)
-        self.mock_row3 = MagicMock(spec=WebElement)
+        self.mock_row1 = MagicMock()
+        self.mock_row2 = MagicMock()
+        self.mock_row3 = MagicMock()
 
         # Cell elements for rows
-        self.mock_cell1_1 = MagicMock(spec=WebElement)
+        self.mock_cell1_1 = MagicMock()
         self.mock_cell1_1.get_attribute.return_value = "file1.txt"
-        self.mock_cell1_2 = MagicMock(spec=WebElement)
+        self.mock_cell1_2 = MagicMock()
         self.mock_cell1_2.get_attribute.return_value = "1KB"
-        self.mock_cell1_3 = MagicMock(spec=WebElement)
+        self.mock_cell1_3 = MagicMock()
         self.mock_cell1_3.get_attribute.return_value = "Active"
 
-        self.mock_cell2_1 = MagicMock(spec=WebElement)
+        self.mock_cell2_1 = MagicMock()
         self.mock_cell2_1.get_attribute.return_value = "file2.txt"
-        self.mock_cell2_2 = MagicMock(spec=WebElement)
+        self.mock_cell2_2 = MagicMock()
         self.mock_cell2_2.get_attribute.return_value = "2KB"
-        self.mock_cell2_3 = MagicMock(spec=WebElement)
+        self.mock_cell2_3 = MagicMock()
         self.mock_cell2_3.get_attribute.return_value = "Inactive"
 
-        self.mock_cell3_1 = MagicMock(spec=WebElement)
+        self.mock_cell3_1 = MagicMock()
         self.mock_cell3_1.get_attribute.return_value = "file3.txt"
-        self.mock_cell3_2 = MagicMock(spec=WebElement)
+        self.mock_cell3_2 = MagicMock()
         self.mock_cell3_2.get_attribute.return_value = "3KB"
-        self.mock_cell3_3 = MagicMock(spec=WebElement)
+        self.mock_cell3_3 = MagicMock()
         self.mock_cell3_3.get_attribute.return_value = "Active"
 
         # Pre-built table data for methods that accept table_data

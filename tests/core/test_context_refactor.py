@@ -139,6 +139,12 @@ class TestElementContext(unittest.TestCase):
         self.ek._info = MagicMock()
         self.ek._debug = MagicMock()
         self.ek._warn = MagicMock()
+        
+        # Add properties needed for the retry logic
+        self.ek._sleep_between_wait = 0.1
+        self.ek._timeout_in_secs = 5
+        self.ek._log_level = 'DEBUG'
+        self.ek._run_on_failure_keyword = 'Capture Page Screenshot'
 
     def test_initial_context(self):
         """Test initial context state."""

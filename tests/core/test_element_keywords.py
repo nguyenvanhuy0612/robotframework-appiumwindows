@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 from AppiumLibrary.keywords._element import _ElementKeywords
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
-import appium.webdriver
+import appium.webdriver.webdriver
 
 class TestElementKeywordsCore(unittest.TestCase):
     
@@ -22,7 +22,9 @@ class TestElementKeywordsCore(unittest.TestCase):
         
         self.ek = _ElementKeywords()
         self.ek._timeout_in_secs = 5
-        self.ek._poll_sleep_between_wait = 0.1 # Use small value for faster tests
+        self.ek._sleep_between_wait = 0.1 # Use small value for faster tests
+        self.ek._log_level = 'DEBUG'
+        self.ek._run_on_failure_keyword = 'Capture Page Screenshot'
         
         # Mock mixin methods not present in _element.py directly
         self.ek._get_platform = MagicMock(return_value='android')
@@ -30,7 +32,7 @@ class TestElementKeywordsCore(unittest.TestCase):
         self.ek.get_source = MagicMock(return_value="<html><p>Mock Page Source</p></html>")
 
         # Mock the application/driver
-        self.mock_driver = MagicMock(spec=appium.webdriver.Remote)
+        self.mock_driver = MagicMock()
         self.mock_driver.get_screenshot_as_base64.return_value = "base64_image"
         self.mock_driver.page_source = "<html><p>Mock Page Source</p></html>"
 
@@ -43,7 +45,7 @@ class TestElementKeywordsCore(unittest.TestCase):
         self.ek._warn = MagicMock()
 
         # Create a real-ish WebElement to return from finds
-        self.mock_element = MagicMock(spec=WebElement)
+        self.mock_element = MagicMock()
         # Identify it easily
         self.mock_element.name = "Mock Element" 
         self.mock_element.text = "Mock Text"
