@@ -13,6 +13,20 @@ from AppiumLibrary.locators import ElementFinder
 from .keywordgroup import KeywordGroup
 
 
+OLD_KEYWORDS = [
+    'clear_text', 'click_element', 'click_text', 'input_text_into_current_element',
+    'input_text', 'input_password', 'input_value', 'hide_keyboard', 'is_keyboard_shown',
+    'page_should_contain_text', 'page_should_not_contain_text', 'page_should_contain_element',
+    'page_should_not_contain_element', 'element_should_be_disabled', 'element_should_be_enabled',
+    'element_should_be_visible', 'element_name_should_be', 'element_value_should_be',
+    'element_attribute_should_match', 'element_should_contain_text', 'element_should_not_contain_text',
+    'element_text_should_be', 'get_webelement', 'scroll_element_into_view',
+    'get_webelement_in_webelement', 'get_webelements', 'get_element_attribute',
+    'get_element_location', 'get_element_size', 'get_element_rect', 'get_text',
+    'get_matching_xpath_count', 'text_should_be_visible', 'xpath_should_match_x_times'
+]
+
+
 class _ElementKeywords(KeywordGroup):
     def __init__(self):
         self._element_finder = ElementFinder()

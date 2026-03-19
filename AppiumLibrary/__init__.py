@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 from AppiumLibrary.keywords import *
+from AppiumLibrary.keywords._element import OLD_KEYWORDS
+from AppiumLibrary.keywords.keywordgroup import ignore_on_fail
 from AppiumLibrary.version import VERSION
 
 __version__ = VERSION
@@ -79,7 +81,7 @@ class AppiumLibrary(
     ROBOT_LIBRARY_SCOPE = 'GLOBAL'
     ROBOT_LIBRARY_VERSION = VERSION
 
-    def __init__(self, timeout=10, run_on_failure='Appium Capture Page Screenshot', sleep_between_wait_loop=1):
+    def __init__(self, timeout=10, run_on_failure='Appium Capture Page Screenshot', sleep_between_wait_loop=1, ignore_old_keywords=False):
         """AppiumLibrary can be imported with optional arguments.
 
         ``timeout`` is the default timeout used to wait for all waiting actions.
@@ -95,6 +97,8 @@ class AppiumLibrary(
         
         ``sleep_between_wait_loop`` is the default sleep used to wait between loop in all wait until keywords
 
+        ``ignore_old_keywords`` if True, old AppiumLibrary keywords will not be loaded.
+
         Examples:
         | Library | AppiumLibrary | 10 | # Sets default timeout to 10 seconds                                                                             |
         | Library | AppiumLibrary | timeout=10 | run_on_failure=No Operation | # Sets default timeout to 10 seconds and does nothing on failure           |
@@ -105,3 +109,15 @@ class AppiumLibrary(
         self.set_appium_timeout(timeout)
         self.register_keyword_to_run_on_failure(run_on_failure)
         self.set_sleep_between_wait_loop(sleep_between_wait_loop)
+        self._ignore_old_keywords = ignore_old_keywords
+
+    @ignore_on_fail
+    def get_keyword_names(self):
+        """Return the list of keywords, optionally filtering out old keywords."""
+        keywords = [
+            name for name in dir(self)
+            if not name.startswith('_') and callable(getattr(self, name)) and name != 'get_keyword_names'
+        ]
+        if self._ignore_old_keywords:
+            keywords = [name for name in keywords if name not in OLD_KEYWORDS]
+        return keywords

@@ -20,7 +20,7 @@ class _PowershellKeywords(KeywordGroup):
         self._bi = BuiltIn()
 
     # Public, element lookups
-    # Powershell command, need appium server allow shell, eg: appium --relaxed-security
+    # Powershell command, need appium server allow shell, eg: appium --allow-insecure powershell
 
     def appium_ps_click(
             self,
@@ -181,11 +181,15 @@ class _PowershellKeywords(KeywordGroup):
 
     def appium_execute_powershell_command(self, command, handle_exception=False):
         """
+        *DEPRECATED* Use `Appium Execute Powershell` instead.
+
         Executes a PowerShell command using Appium's execute_script method.
 
         Note:
             PowerShell command execution must be allowed on the Appium server.
-            For this, Appium must be started with the `--relaxed-security` flag:
+            For this, Appium must be started with the `--allow-insecure` flag:
+                appium --allow-insecure powershell
+            or
                 appium --relaxed-security
 
         Args:
@@ -209,11 +213,15 @@ class _PowershellKeywords(KeywordGroup):
 
     def appium_execute_powershell_script(self, ps_script=None, file_path=None, handle_exception=False):
         """
+        *DEPRECATED* Use `Appium Execute Powershell` instead.
+
         Executes a PowerShell script using Appium's execute_script method.
 
         Note:
             PowerShell command execution must be allowed on the Appium server.
-            For this, Appium must be started with the `--relaxed-security` flag:
+            For this, Appium must be started with the `--allow-insecure` flag:
+                appium --allow-insecure powershell
+            or
                 appium --relaxed-security
 
         Args:
@@ -240,10 +248,41 @@ class _PowershellKeywords(KeywordGroup):
                 return exc
             raise
 
+    def appium_execute_powershell(self, command, handle_exception=False):
+        """
+        Executes a PowerShell command using Appium's execute_script method.
+
+        Note:
+            PowerShell command execution must be allowed on the Appium server.
+            For this, Appium must be started with the `--allow-insecure` flag:
+                appium --allow-insecure powershell
+            or
+                appium --relaxed-security
+
+        Args:
+            command (str): The PowerShell command to be executed.
+            handle_exception (bool): If True, return the exception object on error. Otherwise, return None.
+
+        Returns:
+            str | dict | Exception: The result of the execution or the exception object.
+
+        Raises:
+            Exception: If handle_exception is False and an error occurs.
+        """
+        try:
+            self._info(f"PowerShell command: \n{command}")
+            driver = self._current_application()
+            result = driver.execute_script("powerShell", command)
+            return result
+        except Exception as exc:
+            if handle_exception:
+                return exc
+            raise
+
     def appium_pull_file(self, path: str, save_path: str = None) -> str:
         """Retrieves the file at `path`.
 
-        Powershell command must be allowed. eg: appium --relaxed-security
+        Powershell command must be allowed. eg: appium --allow-insecure powershell
 
         Args:
             path: the path to the file on the device, eg: c:/users/user1/desktop/screenshot_file.png
@@ -265,7 +304,7 @@ class _PowershellKeywords(KeywordGroup):
     def appium_pull_folder(self, path: str, save_path_as_zip: str = '') -> str:
         """Retrieves a folder at `path`.
 
-        Powershell command must be allowed. eg: appium --relaxed-security
+        Powershell command must be allowed. eg: appium --allow-insecure powershell
 
         Args:
             path: the path to the folder on the device. eg: c:/users/user1/desktop/folder1
@@ -288,7 +327,7 @@ class _PowershellKeywords(KeywordGroup):
 
         Specify either `base64data` or `source_path`, if both specified default to `source_path`
 
-        Powershell command must be allowed. eg: appium --relaxed-security
+        Powershell command must be allowed. eg: appium --allow-insecure powershell
 
         Args:
             destination_path: the location on the device/simulator where the local file contents should be saved.
@@ -324,7 +363,7 @@ class _PowershellKeywords(KeywordGroup):
         It breaks the file into chunks, base64 encodes them, and sends them via PowerShell
         to avoid Appium PUSH_FILE limitations on WinAppDriver.
 
-        Powershell command must be allowed. eg: appium --relaxed-security
+        Powershell command must be allowed. eg: appium --allow-insecure powershell
 
         Parameters:
             file_path (str): Local path to the file.
