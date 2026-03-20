@@ -750,9 +750,9 @@ class _ElementKeywords(KeywordGroup):
         """Click.
 
         Arguments:
-        - ``locator``: 
-        - ``timeout``: 
-        - ``required``: 
+        - ``locator``: The element to click.
+        - ``timeout``: Maximum time to wait.
+        - ``required``: If True, fails the test if not found.
         
 
         Examples:
@@ -779,10 +779,10 @@ class _ElementKeywords(KeywordGroup):
         """Click Text.
 
         Arguments:
-        - ``text``: 
-        - ``exact_match``: 
-        - ``timeout``: 
-        - ``required``: 
+        - ``text``: The visible text to click.
+        - ``exact_match``: If True, requires the element's text to match exactly.
+        - ``timeout``: Maximum time to wait.
+        - ``required``: If True, fails the test if not found.
         
 
         Examples:
@@ -809,9 +809,9 @@ class _ElementKeywords(KeywordGroup):
         """Click Button.
 
         Arguments:
-        - ``index_or_name``: 
-        - ``timeout``: 
-        - ``required``: 
+        - ``index_or_name``: The specific name text of the button, or its numeric index.
+        - ``timeout``: Maximum time to wait.
+        - ``required``: If True, fails the test if not found.
         
 
         Examples:
@@ -838,9 +838,9 @@ class _ElementKeywords(KeywordGroup):
         """Click Multiple Time.
 
         Arguments:
-        - ``locator``: 
-        - ``repeat``: 
-        - ``timeout``: 
+        - ``locator``: The element to click.
+        - ``repeat``: The number of times to click the element.
+        - ``timeout``: Maximum time to wait for the element.
         
 
         Examples:
