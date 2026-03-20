@@ -22,6 +22,10 @@ class _WaitingKeywords(KeywordGroup):
         See also `Wait Until Page Contains`, `Wait Until Page Contains 
         Element`, `Wait For Condition` and BuiltIn keyword `Wait Until Keyword
         Succeeds`.
+        
+
+        Examples:
+        | Wait Until Element Is Visible | id=MyElement | 10s |
         """
 
         def check_visibility():
@@ -49,6 +53,10 @@ class _WaitingKeywords(KeywordGroup):
         `Wait Until Page Contains Element`,
         `Wait Until Page Does Not Contain Element` and
         BuiltIn keyword `Wait Until Keyword Succeeds`.
+        
+
+        Examples:
+        | Wait Until Page Contains | Welcome Back | 10s |
         """
         if not error:
             error = "Text '%s' did not appear in <TIMEOUT>" % text
@@ -67,6 +75,10 @@ class _WaitingKeywords(KeywordGroup):
         `Wait Until Page Contains Element`,
         `Wait Until Page Does Not Contain Element` and
         BuiltIn keyword `Wait Until Keyword Succeeds`.
+        
+
+        Examples:
+        | Wait Until Page Does Not Contain | Loading | 10s |
         """
 
         def check_present():
@@ -91,6 +103,10 @@ class _WaitingKeywords(KeywordGroup):
         `Wait Until Page Does Not Contain`
         `Wait Until Page Does Not Contain Element`
         and BuiltIn keyword `Wait Until Keyword Succeeds`.
+        
+
+        Examples:
+        | Wait Until Page Contains Element | id=DashboardPanel | 10s |
         """
         if not error:
             error = "Element '%s' did not appear in <TIMEOUT>" % locator
@@ -109,6 +125,10 @@ class _WaitingKeywords(KeywordGroup):
         `Wait Until Page Does Not Contain`,
         `Wait Until Page Contains Element` and
         BuiltIn keyword `Wait Until Keyword Succeeds`.
+        
+
+        Examples:
+        | Wait Until Page Does Not Contain Element | id=LoadingSpinner | 10s |
         """
 
         def check_present():
@@ -126,6 +146,10 @@ class _WaitingKeywords(KeywordGroup):
         If you use the remote appium server, the default value is not recommended because 
         it is another 200ms overhead to the network latency and will slow down your test
         execution.
+        
+
+        Examples:
+        | Set Sleep Between Wait Loop | 0.5s |
         """
         old_sleep = self._sleep_between_wait
         self._sleep_between_wait = robot.utils.timestr_to_secs(seconds)
@@ -133,6 +157,10 @@ class _WaitingKeywords(KeywordGroup):
 
     def get_sleep_between_wait_loop(self):
         """Gets the sleep between wait loop in seconds that is used by wait until keywords.
+        
+
+        Examples:
+        | Get Sleep Between Wait Loop |
         """
         return robot.utils.secs_to_timestr(self._sleep_between_wait)
 

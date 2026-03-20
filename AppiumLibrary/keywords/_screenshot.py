@@ -56,9 +56,36 @@ class _ScreenshotKeywords(KeywordGroup):
         return base64data
 
     def appium_get_screenshot(self):
+        """Captures a full-page screenshot and returns it as a Base64 string.
+        
+        This keyword does NOT save the image to a file. It returns the raw Base64 data directly.
+        If you want to save it or embed it automatically, use `Appium Capture Page Screenshot`.
+        
+        Returns:
+        A Base64 string representation of the screenshot.
+        
+        Examples:
+        | ${image_data}= | Appium Get Screenshot |
+        """
         return self.appium_capture_page_screenshot(None, False)
 
     def appium_capture_page_screenshot(self, filename=None, embed=True):
+        """Takes a screenshot of the current page, and optionally saves it or embeds it into the log.
+        
+        This keyword acts as a safe wrapper around Robot Framework's default `Capture Page Screenshot` 
+        to gracefully handle capture failures instead of immediately crashing the test.
+        
+        Arguments:
+        - ``filename``: The path where the screenshot will be saved on your local machine. If omitted, no file is created.
+        - ``embed``: If True, the screenshot will be directly embedded into the Robot Framework log.html file as a Base64 image.
+        
+        Returns:
+        The path to the saved screenshot file, or None if it failed.
+        
+        Examples:
+        | Appium Capture Page Screenshot | screenshot.png | embed=True |
+        | Appium Capture Page Screenshot | None | embed=True | # Only embed in html log |
+        """
         try:
             return self.capture_page_screenshot(filename, embed)
         except Exception as err:
@@ -76,6 +103,11 @@ class _ScreenshotKeywords(KeywordGroup):
 
         Warning: this behavior is new in 1.7. Previously if no filename was given
         the screenshots where stored as separate files named `appium-screenshot-<counter>.png`
+        
+
+        Examples:
+        | Capture Page Screenshot | error_page.png | embed=True |
+        | Capture Page Screenshot | None | embed=True |
         """
         if filename:
             path, link = self._get_screenshot_paths(filename)

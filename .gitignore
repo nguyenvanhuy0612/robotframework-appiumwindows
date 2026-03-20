@@ -1,7 +1,8 @@
 # IDE/Editor folders
-.idea/
-.vscode/
+.idea
+.vscode
 *.code-workspace
+.claude
 
 # OS-specific files
 .DS_Store

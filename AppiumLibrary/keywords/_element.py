@@ -35,10 +35,25 @@ class _ElementKeywords(KeywordGroup):
 
     # Context
     def get_search_context(self):
+        """Returns the currently stored search context.
+        
+        The search context is the element implicitly used as the parent for all subsequent relative element lookups.
+        
+        Returns:
+        A dictionary containing the stored 'element' and 'locator'.
+        
+
+        Examples:
+        | Get Search Context |
+        """
         return self._context
 
     def set_search_context(self, context, reference=None, timeout=None):
-        """Find and store the parent element."""
+        """Find and store the parent element.
+
+        Examples:
+        | Set Search Context | $context_value | $reference_value | 10s |
+        """
         old_context = self._context
         self._context = {}
         # default timeout if None
@@ -94,7 +109,11 @@ class _ElementKeywords(KeywordGroup):
         return element
 
     def clear_search_context(self):
-        """Clear stored context."""
+        """Clear stored context.
+
+        Examples:
+        | Clear Search Context |
+        """
         old_context = self._context
         self._context = {}
         return old_context
@@ -103,6 +122,20 @@ class _ElementKeywords(KeywordGroup):
 
     # TODO CHECK ELEMENT
     def appium_element_exist(self, locator, timeout=None):
+        """Checks if an element exists on the screen.
+        
+        Unlike `Wait Until Element Is Visible`, this simply checks for presence in the layout tree, regardless of visibility.
+
+        Arguments:
+        - ``locator``: The element to check for.
+        - ``timeout``: Maximum time to wait for it to appear.
+        
+        Returns:
+        True if the element exists, raises an Exception otherwise.
+        
+        Examples:
+        | ${exists}= | Appium Element Exist | id=MyButton |
+        """
         self._info(f"Appium Element Exist '{locator}', timeout {timeout}")
 
         def func():
@@ -121,6 +154,17 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_wait_until_element_is_visible(self, locator, timeout=None):
+        """Waits until the specified element is visibly displayed on the screen.
+        
+        This keyword fails if the timeout expires before the element becomes visible.
+
+        Arguments:
+        - ``locator``: The element to wait for.
+        - ``timeout``: Maximum time to wait (defaults to the global library timeout).
+        
+        Examples:
+        | Appium Wait Until Element Is Visible | name=Submit | timeout=10s |
+        """
         self._info(f"Appium Wait Until Element Is Visible '{locator}', timeout {timeout}")
 
         def func():
@@ -139,6 +183,17 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_wait_until_element_is_not_visible(self, locator, timeout=None):
+        """Waits until the specified element is no longer visible or no longer exists.
+        
+        This keyword fails if the element is still visible after the timeout expires.
+
+        Arguments:
+        - ``locator``: The element that should disappear.
+        - ``timeout``: Maximum time to wait.
+        
+        Examples:
+        | Appium Wait Until Element Is Not Visible | id=LoadingSpinner |
+        """
         self._info(f"Appium Wait Until Element Is Not Visible '{locator}', timeout {timeout}")
 
         def func():
@@ -165,6 +220,18 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_element_should_be_visible(self, locator, timeout=None):
+        """Asserts that the given element is currently visible on the screen.
+        
+        This is an alias for `Appium Wait Until Element Is Visible` but explicitly implies an assertion intended for test validation.
+
+        Arguments:
+        - ``locator``: The element that must be visible.
+        - ``timeout``: Maximum time to wait for the element.
+        
+
+        Examples:
+        | Appium Element Should Be Visible | id=MyElement | 10s |
+        """
         self._info(f"Appium Element Should Be Visible '{locator}', timeout {timeout}")
 
         def func():
@@ -198,6 +265,10 @@ class _ElementKeywords(KeywordGroup):
         - ``index_only=True``:  the 0-based index, or ``-1`` if nothing found.
         - ``index_only=False``: a tuple ``(index, element)``, or ``(-1, None)``
           if nothing found.
+        
+
+        Examples:
+        | Appium First Found Elements | id=ButtonA | id=ButtonB | timeout=10s | index_only=True |
         """
         self._info(f"Appium First Found Elements '{locators}', timeout {timeout}")
 
@@ -223,6 +294,19 @@ class _ElementKeywords(KeywordGroup):
 
     # TODO FIND ELEMENT
     def appium_get_element(self, locator, timeout=None, required=True):
+        """Finds and returns the first element matching the given locator.
+        
+        Arguments:
+        - ``locator``: The element locator.
+        - ``timeout``: Maximum time to wait to find the element.
+        - ``required``: If True, raises an Exception if the element is not found.
+        
+        Returns:
+        A WebElement instance.
+        
+        Examples:
+        | ${btn}= | Appium Get Element | id=SubmitButton |
+        """
         self._info(f"Appium Get Element '{locator}', timeout '{timeout}', required '{required}'")
 
         def func():
@@ -242,6 +326,18 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_get_elements(self, locator, timeout=None):
+        """Finds and returns a list of all elements matching the given locator.
+        
+        Arguments:
+        - ``locator``: The element locator.
+        - ``timeout``: Maximum time to wait.
+        
+        Returns:
+        A list of WebElement instances, or an empty list if none are found.
+        
+        Examples:
+        | ${buttons}= | Appium Get Elements | class=Button |
+        """
         self._info(f"Appium Get Elements '{locator}', timeout {timeout}")
 
         def func():
@@ -261,6 +357,20 @@ class _ElementKeywords(KeywordGroup):
         ) or []
 
     def appium_get_button_element(self, index_or_name, timeout=None, required=True):
+        """Locates an element of type 'Button' by its name or index.
+        
+        Arguments:
+        - ``index_or_name``: The specific name text of the button, or its numeric index.
+        - ``timeout``: Maximum time to wait.
+        - ``required``: If True, raises an exception if not found.
+        
+        Returns:
+        A WebElement pointing to the button.
+        
+
+        Examples:
+        | Appium Get Button Element | Submit | timeout=10s | required=True |
+        """
         self._info(f"Appium Get Button Element '{index_or_name}', timeout '{timeout}', required '{required}'")
 
         def func():
@@ -280,6 +390,21 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_get_element_text(self, text, exact_match=False, timeout=None, required=True):
+        """Locates an element purely by matching its visible text (Name attribute).
+        
+        Arguments:
+        - ``text``: The text string to search for.
+        - ``exact_match``: If True, the element's text must match exactly. If False, it checks if it contains the text.
+        - ``timeout``: Maximum time to wait.
+        - ``required``: If True, raises an exception if not found.
+        
+        Returns:
+        The matched WebElement.
+        
+
+        Examples:
+        | Appium Get Element Text | Welcome | exact_match=True | timeout=10s |
+        """
         self._info(f"Appium Get Element Text '{text}', exact_match '{exact_match}', timeout '{timeout}', required '{required}'")
 
         def func():
@@ -299,6 +424,19 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_get_element_by(self, key='*', value='', exact_match=False, timeout=None, required=True):
+        """A generic advanced locator that searches elements by a specific dynamic attribute key and value.
+        
+        Arguments:
+        - ``key``: The attribute/property name to search by. Default is '*' (any attribute).
+        - ``value``: The value of the attribute to match.
+        - ``exact_match``: If True, the value must match exactly.
+        - ``timeout``: Maximum time to wait.
+        - ``required``: If True, raises an exception on failure.
+        
+
+        Examples:
+        | Appium Get Element By | AutomationId | SubmitButton | exact_match=True |
+        """
         self._info(f"Appium Get Element By '{key}={value}', exact_match '{exact_match}', timeout '{timeout}', required '{required}'")
 
         def func():
@@ -318,6 +456,20 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_get_element_in_element(self, parent_locator, child_locator, timeout=None):
+        """Finds a child element located inside a specific parent element.
+        
+        Arguments:
+        - ``parent_locator``: The locator of the parent container element.
+        - ``child_locator``: The locator of the child element to find inside the parent.
+        - ``timeout``: Maximum time to wait.
+        
+        Returns:
+        A WebElement referencing the child.
+        
+
+        Examples:
+        | Appium Get Element In Element | id=ParentElement | id=ChildElement | timeout=10s |
+        """
         self._info(f"Appium Get Element In Element, child '{child_locator}', parent '{parent_locator}', timeout {timeout}")
 
         def func():
@@ -345,6 +497,20 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_get_elements_in_element(self, parent_locator, child_locator, timeout=None):
+        """Finds all child elements matching a locator inside a specific parent element.
+        
+        Arguments:
+        - ``parent_locator``: The locator of the parent container element.
+        - ``child_locator``: The locator of the children elements to find inside the parent.
+        - ``timeout``: Maximum time to wait.
+        
+        Returns:
+        A list of child WebElements.
+        
+
+        Examples:
+        | Appium Get Elements In Element | id=ListContainer | class=ListItem | timeout=10s |
+        """
         self._info(f"Appium Get Elements In Element, child '{child_locator}', parent '{parent_locator}', timeout {timeout}")
 
         def func():
@@ -372,6 +538,22 @@ class _ElementKeywords(KeywordGroup):
         ) or []
 
     def appium_find_element(self, locator, timeout=None, first_only=False):
+        """Finds elements targeting a specific locator.
+        
+        This is a flexible alias keyword that can return either a single element or a list of elements depending on the `first_only` flag.
+
+        Arguments:
+        - ``locator``: The element locator.
+        - ``timeout``: Maximum time to wait for the element.
+        - ``first_only``: If True, returns only the first matched element (or None if not found). If False, returns a list of all matches.
+        
+        Returns:
+        A single WebElement or a list of WebElements.
+        
+
+        Examples:
+        | Appium Find Element | id=SubmitButton | timeout=10s | first_only=True |
+        """
         elements = self.appium_get_elements(locator=locator, timeout=timeout)
         if first_only:
             if elements:
@@ -382,6 +564,19 @@ class _ElementKeywords(KeywordGroup):
 
     # TODO GET ELEMENT ATTRIBUTE
     def appium_get_element_attribute(self, locator, attribute, timeout=None):
+        """Retrieves a specific attribute value from an element.
+
+        Arguments:
+        - ``locator``: The element whose attribute you want to read.
+        - ``attribute``: The name of the attribute (e.g., 'Name', 'ClassName', 'HelpText').
+        - ``timeout``: Maximum time to wait.
+        
+        Returns:
+        The string value of the attribute.
+        
+        Examples:
+        | ${name}= | Appium Get Element Attribute | id=MyButton | Name |
+        """
         self._info(f"Appium Get Element Attribute '{attribute}' Of '{locator}', timeout '{timeout}'")
 
         def func():
@@ -402,6 +597,20 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_get_element_attributes(self, locator, attribute, timeout=None):
+        """Retrieves a specific attribute value from all elements that match the locator.
+
+        Arguments:
+        - ``locator``: The element locator.
+        - ``attribute``: The name of the attribute to extract from all matched elements.
+        - ``timeout``: Maximum time to wait.
+        
+        Returns:
+        A list of string attribute values.
+        
+
+        Examples:
+        | Appium Get Element Attributes | class=ListItem | Name | timeout=10s |
+        """
         self._info(f"Appium Get Element Attributes '{attribute}' Of '{locator}', timeout '{timeout}'")
 
         def func():
@@ -422,6 +631,21 @@ class _ElementKeywords(KeywordGroup):
         ) or []
 
     def appium_get_element_attributes_in_element(self, parent_locator, child_locator, attribute, timeout=None):
+        """Retrieves a specific attribute value from all child elements matching `child_locator` within the `parent_locator`.
+
+        Arguments:
+        - ``parent_locator``: The parent context element.
+        - ``child_locator``: The child elements to find.
+        - ``attribute``: The attribute to extract from the children.
+        - ``timeout``: Maximum time to wait.
+        
+        Returns:
+        A list of string attribute values from the matched children.
+        
+
+        Examples:
+        | Appium Get Element Attributes In Element | id=ListContainer | class=ListItem | Name | timeout=10s |
+        """
         self._info(f"Appium Get Element Attributes In Element '{attribute}' Of '{child_locator}' In '{parent_locator}', timeout '{timeout}'")
 
         def func():
@@ -450,6 +674,20 @@ class _ElementKeywords(KeywordGroup):
         ) or []
 
     def appium_get_text(self, locator, first_only=True, timeout=None):
+        """Gets the visible text of an element (or a list of texts if `first_only` is False).
+
+        Arguments:
+        - ``locator``: The target element(s).
+        - ``first_only``: If True, returns the text of only the first matched element. If False, returns a list of texts from all matched elements.
+        - ``timeout``: Maximum time to wait.
+        
+        Returns:
+        A string (if `first_only=True`) or a list of strings.
+        
+        Examples:
+        | ${text}= | Appium Get Text | id=TitleLabel |
+        | ${texts}= | Appium Get Text | class=ListItems | first_only=False |
+        """
         self._info(f"Appium Get Text '{locator}', first_only '{first_only}', timeout '{timeout}'")
 
         def func():
@@ -477,6 +715,20 @@ class _ElementKeywords(KeywordGroup):
         )
     
     def appium_get_rect(self, locator=None, timeout=None):
+        """Gets the bounding rectangle of an element, returning its coordinates and dimensions.
+        
+        If `locator` is completely omitted, this attempts to return the bounding rectangle of the current active search context.
+
+        Arguments:
+        - ``locator``: The target element (optional).
+        - ``timeout``: Maximum time to wait.
+        
+        Returns:
+        A dictionary containing `x`, `y`, `width`, and `height`.
+        
+        Examples:
+        | ${rect}= | Appium Get Rect | id=MyPanel |
+        """
         self._info(f"Appium Get Rect '{locator}', timeout '{timeout}'")
 
         def func():
@@ -495,6 +747,17 @@ class _ElementKeywords(KeywordGroup):
 
     # TODO CLICK ELEMENT
     def appium_click(self, locator, timeout=None, required=True):
+        """Click.
+
+        Arguments:
+        - ``locator``: 
+        - ``timeout``: 
+        - ``required``: 
+        
+
+        Examples:
+        | Appium Click | id=SubmitButton | timeout=10s | required=True |
+        """
         self._info(f"Appium Click '{locator}', timeout '{timeout}'")
 
         def func():
@@ -513,6 +776,18 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_click_text(self, text, exact_match=False, timeout=None, required=True):
+        """Click Text.
+
+        Arguments:
+        - ``text``: 
+        - ``exact_match``: 
+        - ``timeout``: 
+        - ``required``: 
+        
+
+        Examples:
+        | Appium Click Text | Confirm | exact_match=True | timeout=10s | required=True |
+        """
         self._info(f"Appium Click Text '{text}', exact_match '{exact_match}', timeout '{timeout}', required '{required}'")
 
         def func():
@@ -531,6 +806,17 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_click_button(self, index_or_name, timeout=None, required=True):
+        """Click Button.
+
+        Arguments:
+        - ``index_or_name``: 
+        - ``timeout``: 
+        - ``required``: 
+        
+
+        Examples:
+        | Appium Click Button | Cancel | timeout=10s | required=True |
+        """
         self._info(f"Appium Click Button '{index_or_name}', timeout '{timeout}', required '{required}'")
 
         def func():
@@ -549,6 +835,17 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_click_multiple_time(self, locator, repeat=1, timeout=None):
+        """Click Multiple Time.
+
+        Arguments:
+        - ``locator``: 
+        - ``repeat``: 
+        - ``timeout``: 
+        
+
+        Examples:
+        | Appium Click Multiple Time | id=IncrementCounter | repeat=3 | timeout=10s |
+        """
         self._info(f"Appium Click '{locator}' {repeat} times, timeout '{timeout}'")
 
         for i in range(repeat):
@@ -560,10 +857,15 @@ class _ElementKeywords(KeywordGroup):
         """
         Click any element in the list of locators until all elements are not found.
 
-        Args:
-            locators: List of locators to try in order.
-            timeout: Maximum time to wait for an element to appear (default: None).
-            handle_error: Whether to handle errors (default: True).
+        Arguments:
+        - ``locators``: List of locators to try in order.
+        - ``timeout``: Maximum time to wait for an element to appear (default: None).
+        - ``handle_error``: Whether to handle errors (default: True).
+        
+
+        Examples:
+        | @{buttons} | Create List | id=PopupClose | id=BannerClose |
+        | Appium Click Until | ${buttons} | timeout=10s | handle_error=True |
         """
         self._info(f"Appium Click Until: locators='{locators}', timeout='{timeout}', handle_error='{handle_error}'")
 
@@ -592,10 +894,15 @@ class _ElementKeywords(KeywordGroup):
         """
         Click the first element in the list of locators that appears.
 
-        Args:
-            locators: List of locators to try in order.
-            timeout: Maximum time to wait for an element to appear (default: None).
-            handle_error: Whether to handle errors (default: True).
+        Arguments:
+        - ``locators``: List of locators to try in order.
+        - ``timeout``: Maximum time to wait for an element to appear (default: None).
+        - ``handle_error``: Whether to handle errors (default: True).
+        
+
+        Examples:
+        | @{buttons} | Create List | id=Accept | id=Agree | id=OK |
+        | Appium Click First Match | ${buttons} | timeout=5s |
         """
         self._info(f"Appium Click First Match: locators='{locators}', timeout='{timeout}', handle_error='{handle_error}'")
 
@@ -622,6 +929,19 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_click_if_exist(self, locator, timeout=2):
+        """Clicks an element if it exists; otherwise does nothing and returns False.
+
+        Arguments:
+        - ``locator``: The element to click.
+        - ``timeout``: Maximum time to wait. Defaults to 2 seconds.
+        
+        Returns:
+        True if the click was successful, False if the element was not found.
+        
+
+        Examples:
+        | Appium Click If Exist | id=OptionalAdBanner | timeout=5s |
+        """
         self._info(f"Appium Click If Exist '{locator}', timeout '{timeout}'")
         result = self.appium_click(locator, timeout=timeout, required=False)
         if not result:
@@ -630,6 +950,17 @@ class _ElementKeywords(KeywordGroup):
 
     # TODO SEND KEYS TO ELEMENT
     def appium_input(self, locator, text, timeout=None, required=True):
+        """Sends keystrokes to an element.
+
+        Arguments:
+        - ``locator``: The element to input text into.
+        - ``text``: The string to type out.
+        - ``timeout``: Maximum time to wait.
+        - ``required``: If True, fails the test if the element is not found.
+        
+        Examples:
+        | Appium Input | id=UsernameField | Admin |
+        """
         self._info(f"Appium Input '{text}' to '{locator}', timeout '{timeout}', required '{required}'")
 
         text = self._format_keys(text)
@@ -652,6 +983,18 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_input_text(self, locator_text, text, exact_match=False, timeout=None, required=True):
+        """Finds an element by its visible text and inputs keystrokes into it.
+
+        Arguments:
+        - ``locator_text``: The visible text of the element.
+        - ``text``: The string to type out into the matched element.
+        - ``exact_match``: If True, requires the element's text to match exactly.
+        - ``timeout``: Maximum time to wait.
+        - ``required``: If True, fails the test if not found.
+        
+        Examples:
+        | Appium Input Text | Enter Password | secret123 |
+        """
         self._info(f"Appium Input Text '{text}' to '{locator_text}', exact_match '{exact_match}', timeout '{timeout}', required '{required}'")
         text = self._format_keys(text)
         self._info(f"Formatted Text: '{text}'")
@@ -672,28 +1015,96 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_input_if_exist(self, locator, text, timeout=2):
+        """Inputs text into an element only if it exists; otherwise skips without failing.
+
+        Arguments:
+        - ``locator``: The element to input text into.
+        - ``text``: The string to type out.
+        - ``timeout``: Maximum time to wait. Defaults to 2 seconds.
+        
+        Returns:
+        True if the input was successful, False if the element was not found.
+        
+
+        Examples:
+        | Appium Input If Exist | id=OptionalPromoCode | SAVE20 | 5s |
+        """
         result = self.appium_input(locator, text, timeout=timeout, required=False)
         if not result:
             self._info(f"Element '{locator}' not found, skip input and return False")
         return result
 
     def appium_press_page_up(self, locator=None, press_time=1, timeout=None):
+        """Simulates pressing the 'Page Up' keyboard key.
+
+        Arguments:
+        - ``locator``: The element to focus before pressing.
+        - ``press_time``: Number of times to press the key (default 1).
+        - ``timeout``: Maximum time to wait.
+        
+
+        Examples:
+        | Appium Press Page Up | id=ContentArea | press_time=2 |
+        """
         self._info(f"Appium Press Page Up {locator}, press_time {press_time}, timeout {timeout}")
         self.appium_input(locator, "{PAGE_UP}" * press_time, timeout)
 
     def appium_press_page_down(self, locator=None, press_time=1, timeout=None):
+        """Simulates pressing the 'Page Down' keyboard key.
+
+        Arguments:
+        - ``locator``: The element to focus before pressing.
+        - ``press_time``: Number of times to press the key (default 1).
+        - ``timeout``: Maximum time to wait.
+        
+
+        Examples:
+        | Appium Press Page Down | id=ContentArea | press_time=5 |
+        """
         self._info(f"Appium Press Page Down {locator}, press_time {press_time}, timeout {timeout}")
         self.appium_input(locator, "{PAGE_DOWN}" * press_time, timeout)
 
     def appium_press_home(self, locator=None, press_time=1, timeout=None):
+        """Simulates pressing the 'Home' keyboard key.
+
+        Arguments:
+        - ``locator``: The element to focus before pressing.
+        - ``press_time``: Number of times to press the key (default 1).
+        - ``timeout``: Maximum time to wait.
+        
+
+        Examples:
+        | Appium Press Home | locator=id=TopMenu |
+        """
         self._info(f"Appium Press Home {locator}, press_time {press_time}, timeout {timeout}")
         self.appium_input(locator, "{HOME}" * press_time, timeout)
 
     def appium_press_end(self, locator=None, press_time=1, timeout=None):
+        """Simulates pressing the 'End' keyboard key.
+
+        Arguments:
+        - ``locator``: The element to focus before pressing.
+        - ``press_time``: Number of times to press the key (default 1).
+        - ``timeout``: Maximum time to wait.
+        
+
+        Examples:
+        | Appium Press End | locator=id=Footer |
+        """
         self._info(f"Appium Press End {locator}, press_time {press_time}, timeout {timeout}")
         self.appium_input(locator, "{END}" * press_time, timeout)
 
     def appium_clear_all_text(self, locator, timeout=None):
+        """Clears all text in the specified field by sending CTRL+A and DELETE.
+
+        Arguments:
+        - ``locator``: The element to clear.
+        - ``timeout``: Maximum time to wait for the element.
+        
+
+        Examples:
+        | Appium Clear All Text | id=SearchInput | timeout=5s |
+        """
         self._info(f"Appium Clear All Text {locator}, timeout {timeout}")
         self.appium_input(locator, "{CONTROL}a{DELETE}", timeout)
 
@@ -701,13 +1112,17 @@ class _ElementKeywords(KeywordGroup):
         """
         Scrolls to the specified element using the Windows extension. This keyword is only available for NovaWindows2
 
-        Args:
-            locator (WebElement or locator): The element to scroll to or locator of the element.
-            timeout (str): The timeout to wait for the element to be found.
-            handle_exception (bool): If True, return the exception object on failure. If False, raise the exception.
+        Arguments:
+        - ``locator``: The element to scroll to or locator of the element.
+        - ``timeout``: The timeout to wait for the element to be found.
+        - ``handle_exception``: If True, return the exception object on failure. If False, raise the exception.
 
         Returns:
-            None or the exception object.
+        None or the exception object.
+        
+
+        Examples:
+        | Appium Scroll Into View | id=FooterBox | timeout=10s | handle_exception=True |
         """
         try:
             element = self.appium_get_element(locator, timeout)
@@ -724,6 +1139,10 @@ class _ElementKeywords(KeywordGroup):
         """Clears the text field identified by `locator`.
 
         See `introduction` for details about locating elements.
+        
+
+        Examples:
+        | Clear Text | id=UsernameField |
         """
         self._info("Clear text field '%s'" % locator)
         self._element_find(locator, True, True).clear()
@@ -733,6 +1152,10 @@ class _ElementKeywords(KeywordGroup):
 
         Key attributes for arbitrary elements are `index` and `name`. See
         `introduction` for details about locating elements.
+        
+
+        Examples:
+        | Click Element | id=SubmitButton |
         """
         self._info("Clicking element '%s'." % locator)
         self._element_find(locator, True, True).click()
@@ -746,6 +1169,10 @@ class _ElementKeywords(KeywordGroup):
         If there are multiple use  of ``text`` and you do not want first one,
         use `locator` with `Get Web Elements` instead.
 
+        
+
+        Examples:
+        | Click Text | Login | exact_match=True |
         """
         self._element_find_by_text(text, exact_match).click()
 
@@ -753,6 +1180,10 @@ class _ElementKeywords(KeywordGroup):
         """Types the given `text` into currently selected text field.
 
             Android only.
+        
+
+        Examples:
+        | Input Text Into Current Element | Hello World |
         """
         self._info("Typing text '%s' into current text field" % text)
         driver = self._current_application()
@@ -763,6 +1194,10 @@ class _ElementKeywords(KeywordGroup):
         """Types the given `text` into text field identified by `locator`.
 
         See `introduction` for details about locating elements.
+        
+
+        Examples:
+        | Input Text | id=SearchBox | Automation |
         """
         self._info("Typing text '%s' into text field '%s'" % (text, locator))
         self._element_input_text_by_locator(locator, text)
@@ -773,6 +1208,10 @@ class _ElementKeywords(KeywordGroup):
         Difference between this keyword and `Input Text` is that this keyword
         does not log the given password. See `introduction` for details about
         locating elements.
+        
+
+        Examples:
+        | Input Password | id=PasswordField | secret123 |
         """
         self._info("Typing password into text field '%s'" % locator)
         self._element_input_text_by_locator(locator, text)
@@ -781,6 +1220,10 @@ class _ElementKeywords(KeywordGroup):
         """Sets the given value into text field identified by `locator`. This is an IOS only keyword, input value makes use of set_value
 
         See `introduction` for details about locating elements.
+        
+
+        Examples:
+        | Input Value | id=QuantityField | 5 |
         """
         self._info("Setting text '%s' into text field '%s'" % (text, locator))
         self._element_input_value_by_locator(locator, text)
@@ -788,6 +1231,10 @@ class _ElementKeywords(KeywordGroup):
     def hide_keyboard(self, key_name=None):
         """Hides the software keyboard on the device. (optional) In iOS, use `key_name` to press
         a particular key, ex. `Done`. In Android, no parameters are used.
+        
+
+        Examples:
+        | Hide Keyboard | Done |
         """
         driver = self._current_application()
         driver.hide_keyboard(key_name)
@@ -795,6 +1242,10 @@ class _ElementKeywords(KeywordGroup):
     def is_keyboard_shown(self):
         """Return true if Android keyboard is displayed or False if not displayed
         No parameters are used.
+        
+
+        Examples:
+        | Is Keyboard Shown |
         """
         driver = self._current_application()
         return driver.is_keyboard_shown()
@@ -805,6 +1256,10 @@ class _ElementKeywords(KeywordGroup):
         If this keyword fails, it automatically logs the page source
         using the log level specified with the optional `loglevel` argument.
         Giving `NONE` as level disables logging.
+        
+
+        Examples:
+        | Page Should Contain Text | Welcome to App | DEBUG |
         """
         if not self._is_text_present(text):
             self.log_source(loglevel)
@@ -818,6 +1273,10 @@ class _ElementKeywords(KeywordGroup):
         If this keyword fails, it automatically logs the page source
         using the log level specified with the optional `loglevel` argument.
         Giving `NONE` as level disables logging.
+        
+
+        Examples:
+        | Page Should Not Contain Text | Error | INFO |
         """
         if self._is_text_present(text):
             self.log_source(loglevel)
@@ -830,6 +1289,10 @@ class _ElementKeywords(KeywordGroup):
         If this keyword fails, it automatically logs the page source
         using the log level specified with the optional `loglevel` argument.
         Giving `NONE` as level disables logging.
+        
+
+        Examples:
+        | Page Should Contain Element | id=Dashboard | INFO |
         """
         if not self._is_element_present(locator):
             self.log_source(loglevel)
@@ -843,6 +1306,10 @@ class _ElementKeywords(KeywordGroup):
         If this keyword fails, it automatically logs the page source
         using the log level specified with the optional `loglevel` argument.
         Giving `NONE` as level disables logging.
+        
+
+        Examples:
+        | Page Should Not Contain Element | id=LoadingIndicator | NONE |
         """
         if self._is_element_present(locator):
             self.log_source(loglevel)
@@ -854,6 +1321,10 @@ class _ElementKeywords(KeywordGroup):
 
         Key attributes for arbitrary elements are `id` and `name`. See
         `introduction` for details about locating elements.
+        
+
+        Examples:
+        | Element Should Be Disabled | id=SubmitButton |
         """
         if self._element_find(locator, True, True).is_enabled():
             self.log_source(loglevel)
@@ -866,6 +1337,10 @@ class _ElementKeywords(KeywordGroup):
 
         Key attributes for arbitrary elements are `id` and `name`. See
         `introduction` for details about locating elements.
+        
+
+        Examples:
+        | Element Should Be Enabled | id=SubmitButton |
         """
         if not self._element_find(locator, True, True).is_enabled():
             self.log_source(loglevel)
@@ -880,6 +1355,10 @@ class _ElementKeywords(KeywordGroup):
         `introduction` for details about locating elements.
 
         New in AppiumLibrary 1.4.5
+        
+
+        Examples:
+        | Element Should Be Visible | id=ContentArea |
         """
         if not self._element_find(locator, True, True).is_displayed():
             self.log_source(loglevel)
@@ -887,6 +1366,15 @@ class _ElementKeywords(KeywordGroup):
                                  "but did not" % locator)
 
     def element_name_should_be(self, locator, expected):
+        """Verifies that the `name` attribute of the element exactly matches the expected text.
+
+        Arguments:
+        - ``locator``: The element whose name attribute will be checked.
+        - ``expected``: The exact string that the name must equal.
+        
+        Examples:
+        | Element Name Should Be | id=Header | Main Settings |
+        """
         element = self._element_find(locator, True, True)
         if str(expected) != str(element.get_attribute('name')):
             raise AssertionError("Element '%s' name should be '%s' "
@@ -894,6 +1382,15 @@ class _ElementKeywords(KeywordGroup):
         self._info("Element '%s' name is '%s' " % (locator, expected))
 
     def element_value_should_be(self, locator, expected):
+        """Verifies that the `value` attribute of the element exactly matches the expected text.
+
+        Arguments:
+        - ``locator``: The element whose value attribute will be checked.
+        - ``expected``: The exact string that the value must equal.
+        
+        Examples:
+        | Element Value Should Be | id=TextInput | admin@example.com |
+        """
         element = self._element_find(locator, True, True)
         if str(expected) != str(element.get_attribute('value')):
             raise AssertionError("Element '%s' value should be '%s' "
@@ -986,6 +1483,10 @@ class _ElementKeywords(KeywordGroup):
         Key attributes for arbitrary elements are ``id`` and ``xpath``. ``message`` can be used to override the default error message.
 
         New in AppiumLibrary 1.4.
+        
+
+        Examples:
+        | Element Should Contain Text | id=MessageBanner | Success |
         """
         self._info("Verifying element '%s' contains text '%s'."
                    % (locator, expected))
@@ -1001,6 +1502,10 @@ class _ElementKeywords(KeywordGroup):
 
         ``message`` can be used to override the default error message.
         See `Element Should Contain Text` for more details.
+        
+
+        Examples:
+        | Element Should Not Contain Text | id=MessageBanner | Error |
         """
         self._info("Verifying element '%s' does not contain text '%s'."
                    % (locator, expected))
@@ -1020,6 +1525,10 @@ class _ElementKeywords(KeywordGroup):
         ``message`` can be used to override the default error message.
 
         New in AppiumLibrary 1.4.
+        
+
+        Examples:
+        | Element Text Should Be | id=Header | Welcome User |
         """
         self._info("Verifying element '%s' contains exactly text '%s'."
                    % (locator, expected))
@@ -1068,6 +1577,10 @@ class _ElementKeywords(KeywordGroup):
 
         This is useful when your HTML doesn't properly have id or name elements on all elements.
         So the user can find an element with a tag and then search that elmements children.
+        
+
+        Examples:
+        | ${child}= | Get Webelement In Webelement | ${parent_element} | id=ChildId |
         """
         elements = None
         if isinstance(locator, str):
@@ -1123,6 +1636,10 @@ class _ElementKeywords(KeywordGroup):
 
         Key attributes for arbitrary elements are `id` and `name`. See
         `introduction` for details about locating elements.
+        
+
+        Examples:
+        | Get Element Location | id=MyElement |
         """
         element = self._element_find(locator, True, True)
         element_location = element.location
@@ -1134,6 +1651,10 @@ class _ElementKeywords(KeywordGroup):
 
         Key attributes for arbitrary elements are `id` and `name`. See
         `introduction` for details about locating elements.
+        
+
+        Examples:
+        | Get Element Size | id=MyElement |
         """
         element = self._element_find(locator, True, True)
         element_size = element.size
@@ -1145,6 +1666,10 @@ class _ElementKeywords(KeywordGroup):
 
         Key attributes for arbitrary elements are `id` and `name`. See
         `introduction` for details about locating elements.
+        
+
+        Examples:
+        | Get Element Rect | id=MyElement |
         """
         element = self._element_find(locator, True, True)
         element_rect = element.rect
@@ -1174,12 +1699,15 @@ class _ElementKeywords(KeywordGroup):
         | *Correct:* |
         | ${count}  | Get Matching Xpath Count | //android.view.View[@text='Test'] |
         | Incorrect:  |
-        | ${count}  | Get Matching Xpath Count | xpath=//android.view.View[@text='Test'] |
 
         If you wish to assert the number of matching elements, use
         `Xpath Should Match X Times`.
 
         New in AppiumLibrary 1.4.
+        
+
+        Examples:
+        | Get Matching Xpath Count | $xpath_value |
         """
         count = len(self._element_find("xpath=" + xpath, False, False))
         return str(count)
@@ -1188,6 +1716,10 @@ class _ElementKeywords(KeywordGroup):
         """Verifies that element identified with text is visible.
 
         New in AppiumLibrary 1.4.5
+        
+
+        Examples:
+        | Text Should Be Visible | Welcome | exact_match=True |
         """
         if not self._element_find_by_text(text, exact_match).is_displayed():
             self.log_source(loglevel)
@@ -1201,13 +1733,16 @@ class _ElementKeywords(KeywordGroup):
         | *Correct:* |
         | Xpath Should Match X Times | //android.view.View[@text='Test'] | 1 |
         | Incorrect: |
-        | Xpath Should Match X Times | xpath=//android.view.View[@text='Test'] | 1 |
 
         ``error`` can be used to override the default error message.
 
         See `Log Source` for explanation about ``loglevel`` argument.
 
         New in AppiumLibrary 1.4.
+        
+
+        Examples:
+        | Xpath Should Match X Times | $xpath_value | $count_value | $error_value | $loglevel_value |
         """
         actual_xpath_count = len(self._element_find("xpath=" + xpath, False, False))
         if int(actual_xpath_count) != int(count):
@@ -1230,19 +1765,16 @@ class _ElementKeywords(KeywordGroup):
         """
         Retry a function until it succeeds or the timeout is reached.
 
-        Args:
-            timeout (int|str): Maximum time to retry. Can be a number of seconds or a Robot Framework time string.
-            func (callable): The function to execute.
-            action (str): Description of the action for error messages.
-            required (bool): If True, raises TimeoutError on failure. If False, returns False or None.
-            return_value (bool): If True, returns the function result (even if None). If False, returns True on success.
-            poll_interval (float): Seconds to wait between retry attempts (default 0.5s).
+        Arguments:
+        - ``timeout``: Maximum time to retry. Can be a number of seconds or a Robot Framework time string.
+        - ``func``: The function to execute.
+        - ``action``: Description of the action for error messages.
+        - ``required``: If True, raises TimeoutError on failure. If False, returns False or None.
+        - ``return_value``: If True, returns the function result (even if None). If False, returns True on success.
+        - ``poll_interval``: Seconds to wait between retry attempts (default 0.5s).
 
         Returns:
-            The function result / True / False / None / RetryResult depending on flags.
-
-        Raises:
-            TimeoutError: If required=True and the function did not succeed within timeout.
+        The function result / True / False / None / RetryResult depending on flags.
         """
         start = time.time()
         timeout = timeout or self._timeout_in_secs

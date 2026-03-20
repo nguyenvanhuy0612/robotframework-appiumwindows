@@ -34,25 +34,28 @@ class _PowershellKeywords(KeywordGroup):
         Click using PowerShell-level mouse simulation.
 
         Supports:
-          - Absolute coordinates or element-based location via locator
-          - Optional offsets (absolute or 'center')
-          - Custom mouse button
+        - Absolute coordinates or element-based location via locator
+        - Optional offsets (absolute or 'center')
+        - Custom mouse button
 
-        kwargs:
-            - offset: sets both x/y offset globally (overrides individual)
-            - x_offset / y_offset
+        Arguments:
+        - ``locator``: Element locator
+        - ``x``: X coordinate
+        - ``y``: Y coordinate
+        - ``button``: Mouse button to click
+          - ``left``: single left click
+          - ``right``: single right click
+          - ``middle``: single middle click
+          - ``double``: double left click
+          - ``triple``: triple left click
+          - ``right-double``: double right click
+        - ``offset``: sets both x/y offset globally (overrides individual)
+        - ``x_offset`` / ``y_offset``: precise X or Y offset
+        
 
-        @param locator:
-        @param x:
-        @param y:
-        @param button:
-            'left'           - single left click
-            'right'          - single right click
-            'middle'         - single middle click
-            'double'         - double left click
-            'triple'         - triple left click
-            'right-double'   - double right click
-
+        Examples:
+        | Appium Ps Click | locator=id=SubmitButton |
+        | Appium Ps Click | x=100 | y=200 | button=double |
         """
         self._info(f"Appium Ps Click")
 
@@ -72,6 +75,16 @@ class _PowershellKeywords(KeywordGroup):
 
     # TODO temporary add, will remove in the future
     def appium_sendkeys_via_powershell(self, text: str):
+        """Sends keystrokes to the active window using a PowerShell script.
+        
+        This is a temporary alias keyword that executes `Appium Ps Sendkeys` under the hood.
+
+        Arguments:
+        - ``text``: The string of characters to send to the active application.
+        
+        Examples:
+        | Appium Sendkeys Via Powershell | Hello World!{ENTER} |
+        """
         self.appium_ps_sendkeys(text)
 
     def appium_ps_sendkeys(self, text: str):
@@ -85,12 +98,14 @@ class _PowershellKeywords(KeywordGroup):
         To specify repeating keys, use the form {key number}. You must put a space between key and number.
         For example, {LEFT 42} means press the LEFT ARROW key 42 times; {h 10} means press H 10 times.
 
-        @param text: text to sendkeys
-        eg1: text = 123qwe{TAB}iop{ENTER}+a~ABC~
-        eg2: text = "{+}" ({%}) ({^})
-        eg3: text = This is test{LEFT}{BACKSPACE}x
-        eg4: text = 123qwe{BACKSPACE 3}{TAB}{ENTER}
-        @return:
+        Arguments:
+        - ``text``: text to sendkeys
+
+        Examples:
+        | Appium Ps Sendkeys | 123qwe{TAB}iop{ENTER}+a~ABC~ |
+        | Appium Ps Sendkeys | "{+}" ({%}) ({^}) |
+        | Appium Ps Sendkeys | This is test{LEFT}{BACKSPACE}x |
+        | Appium Ps Sendkeys | 123qwe{BACKSPACE 3}{TAB}{ENTER} |
         """
         self._info(f"Appium Ps Sendkeys: {text}")
         text = text.replace('"', '""')
@@ -115,6 +130,23 @@ class _PowershellKeywords(KeywordGroup):
             button='left',
             **kwargs
     ):
+        """Performs a drag and drop action using PowerShell-level mouse simulation.
+        
+        This is a temporary alias keyword that executes `Appium Ps Drag And Drop` under the hood.
+
+        Arguments:
+        - ``start_locator``: The locator of the element where the drag begins.
+        - ``end_locator``: The locator of the element where the drag ends.
+        - ``x_start``: The absolute or relative X-coordinate to start the drag.
+        - ``y_start``: The absolute or relative Y-coordinate to start the drag.
+        - ``x_end``: The absolute or relative X-coordinate to end the drag.
+        - ``y_end``: The absolute or relative Y-coordinate to end the drag.
+        - ``button``: The mouse button to hold during the drag ('left', 'right', 'middle').
+
+        Examples:
+        | Appium Drag And Drop Via Powershell | start_locator=id=SourceItem | end_locator=id=TargetContainer |
+        | Appium Drag And Drop Via Powershell | x_start=100 | y_start=100 | x_end=500 | y_end=500 |
+        """
         return self.appium_ps_drag_and_drop(start_locator=start_locator, 
                                             end_locator=end_locator, 
                                             x_start=x_start, 
@@ -149,6 +181,11 @@ class _PowershellKeywords(KeywordGroup):
             - x_start_offset / y_start_offset
             - x_end_offset / y_end_offset
             - duration_sec: total drag time in seconds (default 0.5)
+        
+
+        Examples:
+        | Appium Ps Drag And Drop | start_locator=id=SourceItem | end_locator=id=TargetBin |
+        | Appium Ps Drag And Drop | x_start=100 | y_start=100 | x_end=500 | y_end=500 |
         """
         self._info("Appium Ps Drag And Drop")
         self._info(f"start_locator='{start_locator}', end_locator='{end_locator}', x_start='{x_start}', y_start='{y_start}', x_end='{x_end}', y_end='{y_end}', button='{button}', kwargs='{kwargs}'")
@@ -192,15 +229,17 @@ class _PowershellKeywords(KeywordGroup):
             or
                 appium --relaxed-security
 
-        Args:
-            command (str): The PowerShell command to be executed.
-            handle_exception (bool): If True, return the exception object on error. Otherwise, return None.
+        Arguments:
+        - ``command``: The PowerShell command to be executed.
+        - ``handle_exception``: If True, return the exception object on error. Otherwise, return None.
 
         Returns:
-            str | dict | Exception: The result of the execution or the exception object.
+        The result of the execution or the exception object.
+        
 
-        Raises:
-            Exception: If handle_exception is False and an error occurs.
+        Examples:
+        | Appium Execute Powershell Command | Get-Process |
+        | Appium Execute Powershell Command | Stop-Process -Name Calculator | handle_exception=True |
         """
         try:
             driver = self._current_application()
@@ -224,16 +263,17 @@ class _PowershellKeywords(KeywordGroup):
             or
                 appium --relaxed-security
 
-        Args:
-            ps_script (str): The full PowerShell script to be executed.
-            file_path (str): The file ps1 to be executed.
-            handle_exception (bool): If True, return the exception object on failure. If False, return None on failure.
+        Arguments:
+        - ``ps_script``: The full PowerShell script to be executed.
+        - ``file_path``: The file ps1 to be executed.
+        - ``handle_exception``: If True, return the exception object on failure. If False, return None on failure.
 
         Returns:
-            str | dict | Exception: The result of the script execution or the exception object.
+        The result of the script execution or the exception object.
+        
 
-        Raises:
-            Exception: If handle_exception is False and an error occurs.
+        Examples:
+        | Appium Execute Powershell Script | file_path=C:\\scripts\\setup.ps1 |
         """
         try:
             if file_path:
@@ -259,15 +299,16 @@ class _PowershellKeywords(KeywordGroup):
             or
                 appium --relaxed-security
 
-        Args:
-            command (str): The PowerShell command to be executed.
-            handle_exception (bool): If True, return the exception object on error. Otherwise, return None.
+        Arguments:
+        - ``command``: The PowerShell command to be executed.
+        - ``handle_exception``: If True, return the exception object on error. Otherwise, return None.
 
         Returns:
-            str | dict | Exception: The result of the execution or the exception object.
+        The result of the execution or the exception object.
+        
 
-        Raises:
-            Exception: If handle_exception is False and an error occurs.
+        Examples:
+        | Appium Execute Powershell | Get-Content C:\\logs.txt |
         """
         try:
             self._info(f"PowerShell command: \n{command}")
@@ -284,12 +325,18 @@ class _PowershellKeywords(KeywordGroup):
 
         Powershell command must be allowed. eg: appium --allow-insecure powershell
 
-        Args:
-            path: the path to the file on the device, eg: c:/users/user1/desktop/screenshot_file.png
-            save_path: path to save, eg: /Users/user1/desktop/screenshot.png
+        Arguments:
+        - ``path``: the path to the file on the device.
+          Eg: ``c:/users/user1/desktop/screenshot_file.png``
+        - ``save_path``: path to save.
+          Eg: ``/Users/user1/desktop/screenshot.png``
 
         Returns:
-            The file's contents encoded as Base64.
+        The file's contents encoded as Base64.
+        
+
+        Examples:
+        | Appium Pull File | C:\\remote_path\\file.txt | /local_path/saved.txt |
         """
 
         # base64data = self._current_application().pull_file(path)
@@ -306,12 +353,18 @@ class _PowershellKeywords(KeywordGroup):
 
         Powershell command must be allowed. eg: appium --allow-insecure powershell
 
-        Args:
-            path: the path to the folder on the device. eg: c:/users/user1/desktop/folder1
-            save_path_as_zip: zip file. eg: /Users/user1/desktop/file.zip
+        Arguments:
+        - ``path``: the path to the folder on the device.
+          Eg: ``c:/users/user1/desktop/folder1``
+        - ``save_path_as_zip``: zip file.
+          Eg: ``/Users/user1/desktop/file.zip``
 
         Returns:
-            The folder's contents zipped and encoded as Base64.
+        The folder's contents zipped and encoded as Base64.
+        
+
+        Examples:
+        | Appium Pull Folder | C:\\remote_path\\logs | /local_path/logs.zip |
         """
         # base64data = self._current_application().pull_folder(path)
         base64data = self._current_application().execute(Command.PULL_FOLDER, {'path': path})['value']
@@ -329,15 +382,20 @@ class _PowershellKeywords(KeywordGroup):
 
         Powershell command must be allowed. eg: appium --allow-insecure powershell
 
-        Args:
-            destination_path: the location on the device/simulator where the local file contents should be saved.
-            eg: c:/users/user1/desktop/screenshot_file.png
-            base64data: file contents, encoded as Base64, to be written
-            to the file on the device/simulator. Eg: iVBORw0KGgoAAAANSUh...
-            source_path: local file path for the file to be loaded on device. Eg: /Users/user1/desktop/source_file.png
+        Arguments:
+        - ``destination_path``: the location on the device/simulator where the local file contents should be saved.
+          Eg: ``c:/users/user1/desktop/screenshot_file.png``
+        - ``base64data``: file contents, encoded as Base64, to be written to the file on the device/simulator.
+          Eg: ``iVBORw0KGgoAAAANSUh...``
+        - ``source_path``: local file path for the file to be loaded on device.
+          Eg: ``/Users/user1/desktop/source_file.png``
 
         Returns:
-            base64data
+        Base64 string of the file data.
+        
+
+        Examples:
+        | Appium Push File | C:\\remote\\dest.txt | source_path=/local/source.txt |
         """
         if source_path is None and base64data is None:
             raise InvalidArgumentException('Must either pass base64 data or a local file path')
@@ -365,10 +423,14 @@ class _PowershellKeywords(KeywordGroup):
 
         Powershell command must be allowed. eg: appium --allow-insecure powershell
 
-        Parameters:
-            file_path (str): Local path to the file.
-            remote_path (str): Full remote file path to create.
-            chunk_size_kb (int): Size of each chunk in KB (default: 15360KB (15MB) - optimized for NovaWindows2)
+        Arguments:
+        - ``file_path``: Local path to the file.
+        - ``remote_path``: Full remote file path to create.
+        - ``chunk_size_kb``: Size of each chunk in KB (default: 15360KB (15MB) - optimized for NovaWindows2)
+        
+
+        Examples:
+        | Appium Transfer File | /local/installer.exe | C:\\Temp\\installer.exe | chunk_size_kb=10240 |
         """
         file_path = Path(file_path)
         remote_path = str(remote_path)

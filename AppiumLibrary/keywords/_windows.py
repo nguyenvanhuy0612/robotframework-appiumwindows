@@ -15,48 +15,175 @@ class _WindowsKeywords(KeywordGroup):
 
     # Public
     def appium_hover(self, locator, start_locator=None, timeout=None, **kwargs):
+        """Hover over an element using the NovaWindows2 driver interface.
+        
+        This keyword moves the mouse pointer to visually hover over the center of the specified element.
+
+        Arguments:
+        - ``locator``: The target element to hover over.
+        - ``start_locator``: An optional starting element to move the mouse cursor from.
+        - ``timeout``: Time to wait for the element to appear.
+        - ``kwargs``: Additional hover options (e.g. `durationMs` for hover time).
+        
+        Examples:
+        | Appium Hover | id=Button1 |
+        """
         self._info(f"Appium Hover '{locator}', timeout '{timeout}'")
         self._appium_hover_api(start_locator=start_locator, end_locator=locator, timeout=timeout, **kwargs)
     
     def appium_click_api(self, locator=None, x=0, y=0, timeout=None, **kwargs):
+        """Click on the screen using absolute coordinates or element locators via the NovaWindows2 driver API.
+        
+        This provides low-level precision control over mouse clicks compared to standard web driver clicks.
+
+        Arguments:
+        - ``locator``: The target element to click on (if coordinates are not used).
+        - ``x``: The specific X-coordinate to click.
+        - ``y``: The specific Y-coordinate to click.
+        - ``timeout``: Time to wait for the element to appear.
+        
+        Examples:
+        | Appium Click API | x=100 | y=200 |
+        | Appium Click API | locator=id=Button1 |
+        """
         self._info(f"Appium Click API '{locator}', timeout '{timeout}', (x,y) '({x},{y})'")
         self._appium_click_api(locator=locator, timeout=timeout, x=x, y=y, **kwargs)
 
     def appium_click_offset(self, locator, x_offset=0, y_offset=0, timeout=None, **kwargs):
+        """Click on an element with an exact X and Y offset from its relative top-left point.
+        
+        This is extremely useful when interacting with large canvases or maps where you need to click precisely within an element frame.
+
+        Arguments:
+        - ``locator``: The parent element.
+        - ``x_offset``: The number of pixels to move right from the element's top-left corner.
+        - ``y_offset``: The number of pixels to move down from the element's top-left corner.
+        - ``timeout``: Maximum time to locate the element.
+        
+        Examples:
+        | Appium Click Offset | id=Canvas | x_offset=50 | y_offset=50 |
+        """
         self._info(f"Appium Click Offset '{locator}', (x_offset,y_offset) '({x_offset},{y_offset})', timeout '{timeout}'")
         self._appium_click_api(locator=locator, timeout=timeout, x_offset=x_offset, y_offset=y_offset, **kwargs)
 
     def appium_right_click(self, locator, timeout=None, **kwargs):
+        """Perform a standard Mouse Right-Click (often used to open context menus).
+
+        Arguments:
+        - ``locator``: The element to right click.
+        - ``timeout``: Maximum time to wait for the element.
+        
+        Examples:
+        | Appium Right Click | id=MyFile |
+        """
         self._info(f"Appium Right Click '{locator}', timeout '{timeout}'")
         self._appium_click_api(locator=locator, timeout=timeout, button="right", **kwargs)
 
     def appium_left_click(self, locator, timeout=None, **kwargs):
+        """Perform an explicit Mouse Left-Click.
+        
+        This behaves identically to a normal click, but forces the "left" mouse button argument.
+
+        Arguments:
+        - ``locator``: The element to left click.
+        - ``timeout``: Maximum time to wait for the element.
+        
+        Examples:
+        | Appium Left Click | id=SubmitButton |
+        """
         self._info(f"Appium Left Click '{locator}', timeout '{timeout}'")
         self._appium_click_api(locator=locator, timeout=timeout, button="left", **kwargs)
 
     def appium_double_click(self, locator, timeout=None, **kwargs):
+        """Perform a fast double-click on the target element.
+
+        Arguments:
+        - ``locator``: The element to double-click on.
+        - ``timeout``: Maximum time to wait for the element.
+        
+        Examples:
+        | Appium Double Click | name=My Folder |
+        """
         self._info(f"Appium Double Click '{locator}', timeout '{timeout}'")
         self._appium_click_api(locator=locator, timeout=timeout, times=2, **kwargs)
 
     def appium_drag_and_drop(self, start_locator=None, end_locator=None, timeout=None, **kwargs):
+        """Drags an element and drops it onto another element using native Windows mouse commands.
+        
+        Arguments:
+        - ``start_locator``: The element to click and hold (the source).
+        - ``end_locator``: The element to drag the source over and release (the destination).
+        - ``timeout``: Maximum time to locate both elements.
+        
+        Examples:
+        | Appium Drag And Drop | id=File1 | id=Folder1 |
+        """
         self._info(f"Appium Drag And Drop '{start_locator} -> {end_locator}', timeout '{timeout}'")
         self._appium_drag_and_drop_api(start_locator=start_locator, end_locator=end_locator, timeout=timeout, **kwargs)
 
     def appium_drag_and_drop_by_offset(self, x_start, y_start, x_end, y_end):
+        """Drags the mouse purely using absolute X,Y screen coordinates.
+
+        Arguments:
+        - ``x_start``: The screen X-coordinate to begin the drag.
+        - ``y_start``: The screen Y-coordinate to begin the drag.
+        - ``x_end``: The screen X-coordinate to finish the drag.
+        - ``y_end``: The screen Y-coordinate to finish the drag.
+        
+        Examples:
+        | Appium Drag And Drop By Offset | 100 | 100 | 500 | 500 |
+        """
         x_start, y_start, x_end, y_end = (int(x) for x in [x_start, y_start, x_end, y_end])
         self._info(f"Appium Drag And Drop By Offset ({x_start}, {y_start}) -> ({x_end}, {y_end})")
         self._appium_drag_and_drop_api(start_locator=None, end_locator=None, timeout=1, startX=x_start, startY=y_start, endX=x_end, endY=y_end)
 
     def appium_scroll(self, locator=None, x=0, y=0, deltaX=0, deltaY=0, timeout=None, **kwargs):
+        """Scrolls the mouse wheel across the target interface.
+        
+        You can provide an element to scroll over, or absolute coordinates.
+
+        Arguments:
+        - ``locator``: The specific element to hover the mouse and scroll on.
+        - ``x``: Fallback absolute X screen coordinate if locator is omitted.
+        - ``y``: Fallback absolute Y screen coordinate if locator is omitted.
+        - ``deltaX``: Horizontal scroll amount.
+        - ``deltaY``: Vertical scroll amount (positive values scroll up, negative values scroll down).
+        - ``timeout``: Maximum time to wait for the element.
+        
+        Examples:
+        | Appium Scroll | id=ScrollPanel | deltaY=-120 |
+        """
         self._info(f"Appium Scroll '{locator}', timeout '{timeout}', (x,y) '({x},{y})', (deltaX,deltaY) '({deltaX},{deltaY})'")
         self._appium_scroll_api(locator=locator, timeout=timeout, x=x, y=y, deltaX=deltaX, deltaY=deltaY, **kwargs)
 
     def appium_sendkeys(self, text=None, **kwargs):
+        """Transmits raw hardware keystrokes using the NovaWindows2 Driver.
+        
+        Use this to bypass software-level keyboard inputs and mimic real hardware typing.
+
+        Arguments:
+        - ``text``: The literal characters (or special key codes) to type out.
+        
+        Examples:
+        | Appium Sendkeys | Hello Universe |
+        """
         self._info(f"Appium Sendkeys '{text}'")
         self._appium_keys_api(text=text, **kwargs)
     
     # TODO: temporary add, will be removed in the future
     def normalize_windows_path(self, path, sep="\\", case_normalize=False, escape_backtick=True):
+        """Alias for `Appium Normalize Path`. Resolves OS-specific directory characters.
+
+        Arguments:
+        - ``path``: The input string path to normalize.
+        - ``sep``: Desired separator (default '\\').
+        - ``case_normalize``: Convert to lowercase if true.
+        - ``escape_backtick``: Safely double backticks in path.
+        
+
+        Examples:
+        | Normalize Windows Path | C:\\Folder\\path | sep=/ | case_normalize=True |
+        """
         return self.appium_normalize_path(path=path, sep=sep, case_normalize=case_normalize, escape_backtick=escape_backtick)
 
     def appium_normalize_path(self, path, sep="\\", case_normalize=False, escape_backtick=True):
@@ -128,31 +255,19 @@ class _WindowsKeywords(KeywordGroup):
             https://github.com/appium/appium-windows-driver
             https://github.com/appium/appium-windows-driver?tab=readme-ov-file#windows-click
 
-        Args:
-            locator (str): Element locator.
-            timeout (int): Maximum time to retry locating and clicking the element (in seconds).
-            kwargs (dict): Additional click options.
-
-        Keyword Args:
-            button (str): Mouse button to click. One of:
-                - "left" (default)
-                - "middle"
-                - "right"
-                - "back"
-                - "forward"
-            modifierKeys (list|str): Keys to hold during the click. One or more of:
-                - "Shift"
-                - "Ctrl"
-                - "Alt"
-                - "Win"
-            modifier_keys (list|str): Same as `modifierKeys` (snake_case alias).
-            x_offset (int): X offset relative to the element's top-left corner. Default: 0.
-            y_offset (int): Y offset relative to the element's top-left corner. Default: 0.
-            is_center (bool): If True, click at the element's center. Default: False.
-            durationMs (int): Duration of the click in milliseconds. Default: 100.
-            times (int): Number of times to click. Default: 1.
-            interClickDelayMs (int): Delay between multiple clicks in milliseconds. Default: 100.
-            post_delay (float): Delay after click action (in seconds). Default: 0.5.
+        Arguments:
+        - ``locator``: Element locator.
+        - ``timeout``: Maximum time to retry locating and clicking the element (in seconds).
+        - ``kwargs``: Additional click options.
+        - ``button``: Mouse button to click. ("left", "middle", "right", "back", "forward")
+        - ``modifierKeys``: Keys to hold during the click. ("Shift", "Ctrl", "Alt", "Win")
+        - ``x_offset``: X offset relative to the element's top-left corner. Default: 0.
+        - ``y_offset``: Y offset relative to the element's top-left corner. Default: 0.
+        - ``is_center``: If True, click at the element's center. Default: False.
+        - ``durationMs``: Duration of the click in milliseconds. Default: 100.
+        - ``times``: Number of times to click. Default: 1.
+        - ``interClickDelayMs``: Delay between multiple clicks in milliseconds. Default: 100.
+        - ``post_delay``: Delay after click action (in seconds). Default: 0.5.
 
         Raises:
             Exception: If the element cannot be found or the click action fails within the timeout.
@@ -324,9 +439,12 @@ class _WindowsKeywords(KeywordGroup):
         Perform a key input action using Appium Windows Driver.
         https://github.com/nguyenvanhuy0612/appium-novawindows2-driver?tab=readme-ov-file#windows-keys
 
-        @param text: The text to input
-        @param kwargs: Additional parameters
-        @return: None
+        Arguments:
+        - ``text``: The text to input
+        - ``kwargs``: Additional parameters
+
+        Returns:
+        None
         """
         actions = kwargs.get("actions", [])
         # pause = int(kwargs.get("pause", 0))

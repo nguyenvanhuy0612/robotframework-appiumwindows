@@ -18,22 +18,74 @@ class _ApplicationManagementKeywords(KeywordGroup):
 
     # Public, open and close
     def appium_get_current_application(self):
+        """Returns the current active Appium application instance.
+        
+        This keyword retrieves the internal WebDriver instance mapped to the active session. If no application is open, it returns `None`.
+
+        Returns:
+        The current ApplicationCache driver instance.
+        
+        Examples:
+        | ${app}= | Appium Get Current Application |
+        """
         current = self._cache.current
         if current is self._cache._no_current:
             return None
         return current
 
     def appium_get_session_index(self):
+        """Returns the internal index of the current active Appium session.
+        
+        This is useful if you have multiple applications open and want to switch back to this one later using `Switch Application`.
+
+        Returns:
+        The integer index of the current session.
+        
+        Examples:
+        | ${index}= | Appium Get Session Index |
+        """
         current_index = self._cache.current_index
         return current_index
 
     def appium_close_application(self, ignore_fail=False, quit_app=True):
+        """Closes the current Appium application session.
+        
+        Unlike `Close Application`, this keyword provides additional options to forcefully quit the underlying app or ignore failures.
+
+        Arguments:
+        - ``ignore_fail``: If True, suppresses exceptions if the keyword fails to close the application.
+        - ``quit_app``: If True, specifically instructs the WebDriver to terminate the app process.
+        
+        Examples:
+        | Appium Close Application | ignore_fail=True | quit_app=True |
+        """
         self._cache.close(ignore_fail, quit_app)
 
     def appium_close_all_applications(self, ignore_fail=True, quit_app=True):
+        """Closes all currently open Appium application sessions.
+        
+        This is typically used in test suite teardowns to ensure no orphaned applications are left running.
+
+        Arguments:
+        - ``ignore_fail``: If True (default), ignores any errors occurring during the process of closing multiple sessions.
+        - ``quit_app``: If True (default), triggers termination of each underlying app process.
+        
+        Examples:
+        | Appium Close All Applications |
+        """
         self._cache.close_all(ignore_fail, quit_app)
 
     def appium_save_source(self, file_path='file_source.txt'):
+        """Saves the current application's page source (XML UI tree) directly to a local file.
+        
+        This is incredibly useful for debugging element locators offline, as it writes the full `get_source()` text directly into a UTF-8 encoded file.
+
+        Arguments:
+        - ``file_path``: The local filepath to write the page source into. Defaults to 'file_source.txt' in the current executing directory.
+        
+        Examples:
+        | Appium Save Source | C:/logs/app_tree.xml |
+        """
         page_source = self.get_source()
         with open(file_path, 'w', encoding='utf-8') as file:
             file.write(page_source)
@@ -41,8 +93,8 @@ class _ApplicationManagementKeywords(KeywordGroup):
     def appium_activate_application(self, process):
         """Activates the application with the given process name.
 
-        Args:
-            process (str): The process name of the application to activate.
+        Arguments:
+        - ``process``: The process name of the application to activate.
 
         Example:
         | Appium Activate Application | notepad.exe |
@@ -54,10 +106,10 @@ class _ApplicationManagementKeywords(KeywordGroup):
     def appium_set_clipboard(self, content, content_type='plaintext', encode_base64=True):
         """Sets the clipboard content.
 
-        Args:
-            content (str): The content to set to the clipboard.
-            content_type (str): The type of content to set to the clipboard.
-            encode_base64 (bool): Whether to encode the clipboard content to base64.
+        Arguments:
+        - ``content``: The content to set to the clipboard.
+        - ``content_type``: The type of content to set to the clipboard.
+        - ``encode_base64``: Whether to encode the clipboard content to base64.
 
         Example:
         | Appium Set Clipboard | Hello World |
@@ -81,12 +133,12 @@ class _ApplicationManagementKeywords(KeywordGroup):
     def appium_get_clipboard(self, content_type='plaintext', decode_base64=True):
         """Gets the clipboard content.
 
-        Args:
-            content_type (str): The type of content to get from the clipboard.
-            decode_base64 (bool): Whether to decode the clipboard content from base64.
+        Arguments:
+        - ``content_type``: The type of content to get from the clipboard.
+        - ``decode_base64``: Whether to decode the clipboard content from base64.
 
         Returns:
-            str: The clipboard content.
+        The clipboard content.
 
         Example:
         | ${clipboard}= | Appium Get Clipboard |
@@ -108,7 +160,11 @@ class _ApplicationManagementKeywords(KeywordGroup):
         return clipboard
 
     def close_application(self):
-        """Closes the current application and also close webdriver session."""
+        """Closes the current application and also close webdriver session.
+
+        Examples:
+        | Close Application |
+        """
         self._info('Closing application with session id %s' % self._current_application().session_id)
         self._cache.close()
 
@@ -121,6 +177,10 @@ class _ApplicationManagementKeywords(KeywordGroup):
 
         After this keyword, the application indices returned by `Open Application`
         are reset and start from `1`.
+        
+
+        Examples:
+        | Close All Applications | ignore_fail=True |
         """
 
         self._info('Closing all applications')
@@ -223,6 +283,10 @@ class _ApplicationManagementKeywords(KeywordGroup):
 
         See `Launch Application` for an explanation.
 
+        
+
+        Examples:
+        | Quit Application |
         """
         driver = self._current_application()
         driver.close_app()
@@ -231,6 +295,10 @@ class _ApplicationManagementKeywords(KeywordGroup):
         """*DEPRECATED!!* in selenium v4, check `Terminate Application` keyword.
 
         Reset application. Open Application can be reset while Appium session is kept alive.
+        
+
+        Examples:
+        | Reset Application |
         """
         driver = self._current_application()
         driver.reset()
@@ -248,7 +316,11 @@ class _ApplicationManagementKeywords(KeywordGroup):
     def get_appium_timeout(self):
         """Gets the timeout in seconds that is used by various keywords.
 
-        See `Set Appium Timeout` for an explanation."""
+        See `Set Appium Timeout` for an explanation.
+
+        Examples:
+        | Get Appium Timeout |
+        """
         return robot.utils.secs_to_timestr(self._timeout_in_secs)
 
     def set_appium_timeout(self, seconds):
@@ -272,12 +344,20 @@ class _ApplicationManagementKeywords(KeywordGroup):
         return old_timeout
 
     def get_appium_sessionId(self):
-        """Returns the current session ID as a reference"""
+        """Returns the current session ID as a reference
+
+        Examples:
+        | Get Appium Sessionid |
+        """
         self._info("Appium Session ID: " + self._current_application().session_id)
         return self._current_application().session_id
 
     def get_source(self):
-        """Returns the entire source of the current page."""
+        """Returns the entire source of the current page.
+
+        Examples:
+        | Get Source |
+        """
         return self._current_application().page_source
 
     def log_source(self, loglevel='INFO'):
@@ -285,6 +365,10 @@ class _ApplicationManagementKeywords(KeywordGroup):
 
         The `loglevel` argument defines the used log level. Valid log levels are
         `WARN`, `INFO` (default), `DEBUG`, `TRACE` and `NONE` (no logging).
+        
+
+        Examples:
+        | Log Source | $loglevel_value |
         """
         ll = loglevel.upper()
         if ll == 'NONE':
@@ -347,6 +431,10 @@ class _ApplicationManagementKeywords(KeywordGroup):
         Returns the exit code of ADB shell.
 
         Requires server flag --relaxed-security to be set on Appium server.
+        
+
+        Examples:
+        | Execute Adb Shell | input keyevent 4 |
         """
         return self._current_application().execute_script('mobile: shell', {
             'command': command,
@@ -366,6 +454,10 @@ class _ApplicationManagementKeywords(KeywordGroup):
         Returns the exit code of ADB shell.
 
         Requires server flag --relaxed-security to be set on Appium server.
+        
+
+        Examples:
+        | Execute Adb Shell Timeout | input text 'hello' | 5000 |
         """
         return self._current_application().execute_script('mobile: shell', {
             'command': command,
@@ -374,12 +466,20 @@ class _ApplicationManagementKeywords(KeywordGroup):
         })
 
     def go_back(self):
-        """Goes one step backward in the browser history."""
+        """Goes one step backward in the browser history.
+
+        Examples:
+        | Go Back |
+        """
         self._current_application().back()
 
     def lock(self, seconds=5):
         """
         Lock the device for a certain period of time. iOS only.
+        
+
+        Examples:
+        | Lock | 5s |
         """
         self._current_application().lock(robot.utils.timestr_to_secs(seconds))
 
@@ -387,6 +487,10 @@ class _ApplicationManagementKeywords(KeywordGroup):
         """*DEPRECATED!!*  use  `Background Application` instead.
         Puts the application in the background on the device for a certain
         duration.
+        
+
+        Examples:
+        | Background App | 5s |
         """
         self._current_application().background_app(seconds)
 
@@ -394,16 +498,24 @@ class _ApplicationManagementKeywords(KeywordGroup):
         """
         Puts the application in the background on the device for a certain
         duration.
+        
+
+        Examples:
+        | Background Application | 5s |
         """
         self._current_application().background_app(seconds)
 
     def activate_application(self, app_id):
         """
         Activates the application if it is not running or is running in the background.
-        Args:
-         - app_id - BundleId for iOS. Package name for Android.
+        Arguments:
+        - ``app_id``: BundleId for iOS. Package name for Android.
 
         New in AppiumLibrary v2
+        
+
+        Examples:
+        | Activate Application | com.apple.Preferences |
         """
         self._current_application().activate_app(app_id)
 
@@ -411,10 +523,14 @@ class _ApplicationManagementKeywords(KeywordGroup):
         """
         Terminate the given app on the device
 
-        Args:
-         - app_id - BundleId for iOS. Package name for Android.
+        Arguments:
+        - ``app_id``: BundleId for iOS. Package name for Android.
 
         New in AppiumLibrary v2
+        
+
+        Examples:
+        | Terminate Application | com.apple.Preferences |
         """
         return self._current_application().terminate_app(app_id)
 
@@ -423,6 +539,10 @@ class _ApplicationManagementKeywords(KeywordGroup):
         Stop the given app on the device
 
         Android only. New in AppiumLibrary v2
+        
+
+        Examples:
+        | Stop Application | com.android.settings | 10s | include_stderr=True |
         """
         self._current_application().execute_script('mobile: shell', {
             'command': 'am force-stop',
@@ -438,6 +558,10 @@ class _ApplicationManagementKeywords(KeywordGroup):
         `match` (boolean) whether the simulated fingerprint is valid (default true)
 
         New in AppiumLibrary 1.5
+        
+
+        Examples:
+        | Touch Id | match=True |
         """
         self._current_application().touch_id(match)
 
@@ -446,33 +570,57 @@ class _ApplicationManagementKeywords(KeywordGroup):
         Toggle Touch ID enrolled state on iOS Simulator
 
         New in AppiumLibrary 1.5
+        
+
+        Examples:
+        | Toggle Touch Id Enrollment |
         """
         self._current_application().toggle_touch_id_enrollment()
 
     def shake(self):
         """
         Shake the device
+        
+
+        Examples:
+        | Shake |
         """
         self._current_application().shake()
 
     def portrait(self):
         """
         Set the device orientation to PORTRAIT
+        
+
+        Examples:
+        | Portrait |
         """
         self._rotate('PORTRAIT')
 
     def landscape(self):
         """
         Set the device orientation to LANDSCAPE
+        
+
+        Examples:
+        | Landscape |
         """
         self._rotate('LANDSCAPE')
 
     def get_current_context(self):
-        """Get current context."""
+        """Get current context.
+
+        Examples:
+        | Get Current Context |
+        """
         return self._current_application().current_context
 
     def get_contexts(self):
-        """Get available contexts."""
+        """Get available contexts.
+
+        Examples:
+        | Get Contexts |
+        """
         contexts = self._current_application().contexts
         self._info(contexts)
         return contexts
@@ -502,7 +650,11 @@ class _ApplicationManagementKeywords(KeywordGroup):
         return self._current_application().get_window_size()['width']
 
     def switch_to_context(self, context_name):
-        """Switch to a new context"""
+        """Switch to a new context
+
+        Examples:
+        | Switch To Context | WEBVIEW_1 |
+        """
         self._current_application().switch_to.context(context_name)
 
     def switch_to_frame(self, frame):
@@ -520,12 +672,20 @@ class _ApplicationManagementKeywords(KeywordGroup):
         """
         Switches focus to the parent context. If the current context is the top
         level browsing context, the context remains unchanged.
+        
+
+        Examples:
+        | Switch To Parent Frame |
         """
         self._current_application().switch_to.parent_frame()
 
     def switch_to_window(self, window_name):
         """
         Switch to a new webview window if the application contains multiple webviews
+        
+
+        Examples:
+        | Switch To Window | CDwindow-12345 |
         """
         self._current_application().switch_to.window(window_name)
 
@@ -542,6 +702,10 @@ class _ApplicationManagementKeywords(KeywordGroup):
     def get_capability(self, capability_name=None):
         """
         Return the desired capability value by desired capability name
+        
+
+        Examples:
+        | Get Capability | platformName |
         """
         try:
             capabilities = self._current_application().capabilities
@@ -551,15 +715,27 @@ class _ApplicationManagementKeywords(KeywordGroup):
         return capability
 
     def get_window_title(self):
-        """Get the current Webview window title."""
+        """Get the current Webview window title.
+
+        Examples:
+        | Get Window Title |
+        """
         return self._current_application().title
 
     def get_window_url(self):
-        """Get the current Webview window URL."""
+        """Get the current Webview window URL.
+
+        Examples:
+        | Get Window Url |
+        """
         return self._current_application().current_url
 
     def get_windows(self):
-        """Get available Webview windows."""
+        """Get available Webview windows.
+
+        Examples:
+        | Get Windows |
+        """
         windows = self._current_application().window_handles
         self._info(windows)
         return windows
