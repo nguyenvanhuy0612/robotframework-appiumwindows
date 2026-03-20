@@ -747,7 +747,7 @@ class _ElementKeywords(KeywordGroup):
 
     # TODO CLICK ELEMENT
     def appium_click(self, locator, timeout=None, required=True):
-        """Click.
+        """Clicks the element identified by the given locator.
 
         Arguments:
         - ``locator``: The element to click.
@@ -776,7 +776,7 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_click_text(self, text, exact_match=False, timeout=None, required=True):
-        """Click Text.
+        """Clicks an element that exactly or partially matches the given text.
 
         Arguments:
         - ``text``: The visible text to click.
@@ -806,7 +806,7 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_click_button(self, index_or_name, timeout=None, required=True):
-        """Click Button.
+        """Clicks a button element identified by its name or numeric index.
 
         Arguments:
         - ``index_or_name``: The specific name text of the button, or its numeric index.
@@ -835,7 +835,7 @@ class _ElementKeywords(KeywordGroup):
         )
 
     def appium_click_multiple_time(self, locator, repeat=1, timeout=None):
-        """Click Multiple Time.
+        """Clicks the specified element (identified by locator) multiple times sequentially.
 
         Arguments:
         - ``locator``: The element to click.
@@ -1632,7 +1632,7 @@ class _ElementKeywords(KeywordGroup):
             raise AssertionError("Attribute '%s' is not valid for element '%s'" % (attribute, locator))
 
     def get_element_location(self, locator):
-        """Get element location
+        """Gets the X and Y coordinates (location) of the element's top-left corner.
 
         Key attributes for arbitrary elements are `id` and `name`. See
         `introduction` for details about locating elements.
@@ -1647,7 +1647,7 @@ class _ElementKeywords(KeywordGroup):
         return element_location
 
     def get_element_size(self, locator):
-        """Get element size
+        """Gets the width and height dimensions of the specified element.
 
         Key attributes for arbitrary elements are `id` and `name`. See
         `introduction` for details about locating elements.
