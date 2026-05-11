@@ -208,10 +208,26 @@ class _ApplicationManagementKeywords(KeywordGroup):
         if 'strict_ssl' in kwargs:
             ignore_certificates = str(kwargs.pop('strict_ssl')).lower() == 'false'
 
-        client_config = AppiumClientConfig(remote_url,
-                                            direct_connection=kwargs.pop('direct_connection', True),
-                                            keep_alive=kwargs.pop('keep_alive', False),
-                                            ignore_certificates=ignore_certificates)
+        client_timeout = kwargs.pop('client_timeout', None)
+        client_retries = kwargs.pop('client_retries', None)
+        pool_manager_args = {}
+        if client_retries is not None:
+            client_retries = int(client_retries)
+            pool_manager_args['retries'] = False if client_retries <= 0 else client_retries
+
+        client_config_kwargs = {
+            'direct_connection': kwargs.pop('direct_connection', True),
+            'keep_alive': kwargs.pop('keep_alive', False),
+            'ignore_certificates': ignore_certificates,
+        }
+        if client_timeout is not None:
+            client_config_kwargs['timeout'] = float(client_timeout)
+        if pool_manager_args:
+            client_config_kwargs['init_args_for_pool_manager'] = {
+                'init_args_for_pool_manager': pool_manager_args
+            }
+
+        client_config = AppiumClientConfig(remote_url, **client_config_kwargs)
 
         options = AppiumOptions().load_capabilities(caps=kwargs)
         application = webdriver.Remote(command_executor=str(remote_url), options=options, client_config=client_config)
