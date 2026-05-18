@@ -26,4 +26,15 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+# Load .env (gitignored) so TWINE_USERNAME / TWINE_PASSWORD are available to twine.
+# Falls back to ~/.pypirc if .env is absent.
+if (Test-Path .env) {
+    Write-Host "Loading credentials from .env..." -ForegroundColor Cyan
+    Get-Content .env | ForEach-Object {
+        if ($_ -match '^\s*([^#=][^=]*)=(.*)$') {
+            Set-Item "env:$($matches[1].Trim())" $matches[2].Trim()
+        }
+    }
+}
+
 python -m twine upload dist/*

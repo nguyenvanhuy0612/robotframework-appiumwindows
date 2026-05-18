@@ -158,6 +158,70 @@ class _ApplicationManagementKeywords(KeywordGroup):
         if decode_base64:
             clipboard = base64.b64decode(clipboard).decode('utf-8')
         return clipboard
+    
+    def appium_execute(self, command, handle_exception=False, **kwargs):
+        """Executes an Appium ``execute_script`` command on the current application.
+
+        For NovaWindows2-prefixed commands use `Appium Windows Execute` instead.
+        For ad-hoc PowerShell use `Appium Execute Powershell`.
+
+        Arguments:
+        - ``command``: The script/command name as the driver expects it (no ``windows:`` prefix added).
+        - ``handle_exception``: If True, return the exception object on error instead of raising.
+        - ``**kwargs``: Optional arguments forwarded to the script as a dict.
+
+        Returns:
+        The result of the execution, or the exception object when ``handle_exception=True`` and an error occurs.
+
+        Examples:
+        | ${out} | Appium Execute | powerShell | command=Get-Date |
+        | ${err} | Appium Execute | unknownCmd | handle_exception=${True} |
+        """
+        self._info(f"Executing command '{command}' with arguments '{kwargs}'")
+        try:
+            driver = self._current_application()
+            return driver.execute_script(command, kwargs)
+        except Exception as exc:
+            if handle_exception:
+                return exc
+            raise
+
+    def appium_windows_execute(self, script, handle_exception=False, **kwargs):
+        """Executes a ``windows:`` extension command on the current application.
+
+        Supported extension names (from appium-novawindows2-driver ``EXTENSION_COMMANDS``):
+
+        | *Category*    | *Names* |
+        | Session/root  | ``scopeSession``, ``resetSessionRoot`` |
+        | App lifecycle | ``launchApp``, ``closeApp``, ``setProcessForeground`` |
+        | UIA patterns  | ``invoke``, ``expand``, ``collapse``, ``isMultiple``, ``scrollIntoView``, ``selectedItem``, ``allSelectedItems``, ``addToSelection``, ``removeFromSelection``, ``select``, ``toggle``, ``setValue``, ``getValue``, ``maximize``, ``minimize``, ``restore``, ``close`` |
+        | Input         | ``keys``, ``click``, ``hover``, ``scroll``, ``clickAndDrag``, ``setFocus``, ``typeDelay`` |
+        | Misc          | ``cacheRequest``, ``getAttributes``, ``getClipboard``, ``setClipboard``, ``startRecordingScreen``, ``stopRecordingScreen`` |
+
+        Arguments:
+        - ``script``: The extension name WITHOUT the ``windows:`` prefix (e.g. ``scopeSession``).
+        - ``handle_exception``: If True, return the exception object on error instead of raising.
+        - ``**kwargs``: Optional arguments forwarded to the script as a dict.
+
+        Returns:
+        The result of the execution, or the exception object when ``handle_exception=True`` and an error occurs.
+
+        Examples:
+        | ${hwnd}  | Appium Windows Execute | scopeSession         | name=SecureAge Password | className=#32770 | timeout=20 | pollMs=500 |
+        |          | Appium Windows Execute | resetSessionRoot     |
+        |          | Appium Windows Execute | setProcessForeground | process=notepad.exe |
+        | ${b64}   | Appium Windows Execute | getClipboard         | contentType=plaintext |
+        | ${err}   | Appium Windows Execute | scopeSession         | name=Missing | handle_exception=${True} |
+        """
+        full_script = f"windows: {script}"
+        self._info(f"Executing windows command '{full_script}' with arguments '{kwargs}'")
+        try:
+            driver = self._current_application()
+            return driver.execute_script(full_script, kwargs)
+        except Exception as exc:
+            if handle_exception:
+                return exc
+            raise
 
     def close_application(self):
         """Closes the current application and also close webdriver session.
