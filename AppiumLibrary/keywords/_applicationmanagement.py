@@ -107,12 +107,19 @@ class _ApplicationManagementKeywords(KeywordGroup):
         """Sets the clipboard content.
 
         Arguments:
-        - ``content``: The content to set to the clipboard.
-        - ``content_type``: The type of content to set to the clipboard.
-        - ``encode_base64``: Whether to encode the clipboard content to base64.
+        - ``content``: The content to set to the clipboard. For ``plaintext`` this
+          is the text. For ``image`` this is either raw PNG ``bytes`` (encoded to
+          base64 automatically) or a string that is already base64-encoded PNG
+          (passed through unchanged).
+        - ``content_type``: The type of content to set. ``plaintext`` (alias
+          ``text/plain``) or ``image`` (alias ``image/png``).
+        - ``encode_base64``: For ``plaintext`` only, whether to base64-encode the
+          text before sending. Ignored for ``image`` (images are always handled
+          as base64-encoded PNG bytes).
 
         Example:
         | Appium Set Clipboard | Hello World |
+        | Appium Set Clipboard | ${png_bytes} | content_type=image |
         """
         self._info("Setting clipboard content")
         if content_type == 'text/plain':
@@ -123,7 +130,14 @@ class _ApplicationManagementKeywords(KeywordGroup):
         if content_type not in ['plaintext', 'image']:
             raise ValueError("Invalid content type. Must be 'plaintext' or 'image'.")
 
-        if encode_base64:
+        if content_type == 'image':
+            # The driver expects base64-encoded PNG bytes (sidecar does
+            # SetPng(FromBase64String(b64Content))). Accept raw PNG bytes and
+            # encode them once; a str is assumed to already be base64-PNG and is
+            # passed through unchanged. encode_base64 does not apply to images.
+            if isinstance(content, (bytes, bytearray)):
+                content = base64.b64encode(content).decode('utf-8')
+        elif encode_base64:
             content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
 
         driver = self._current_application()
@@ -134,14 +148,19 @@ class _ApplicationManagementKeywords(KeywordGroup):
         """Gets the clipboard content.
 
         Arguments:
-        - ``content_type``: The type of content to get from the clipboard.
-        - ``decode_base64``: Whether to decode the clipboard content from base64.
+        - ``content_type``: The type of content to get. ``plaintext`` (alias
+          ``text/plain``) or ``image`` (alias ``image/png``).
+        - ``decode_base64``: Whether to decode the base64 returned by the driver.
+          For ``plaintext`` the decoded UTF-8 text is returned; for ``image`` the
+          raw PNG ``bytes`` are returned. When ``False``, the raw base64 string is
+          returned as-is.
 
         Returns:
-        The clipboard content.
+        The clipboard content: ``str`` for plaintext, ``bytes`` for a decoded image.
 
         Example:
         | ${clipboard}= | Appium Get Clipboard |
+        | ${png_bytes}= | Appium Get Clipboard | content_type=image |
         """
         self._info("Getting clipboard content")
         if content_type == 'text/plain':
@@ -155,7 +174,12 @@ class _ApplicationManagementKeywords(KeywordGroup):
         driver = self._current_application()
         clipboard = driver.execute_script('windows: getClipboard', {'contentType': content_type})
 
-        if decode_base64:
+        if content_type == 'image':
+            # An image is base64-encoded PNG bytes; decoding to UTF-8 would fail
+            # on the binary data. Return raw PNG bytes when decoding is requested.
+            if decode_base64:
+                clipboard = base64.b64decode(clipboard)
+        elif decode_base64:
             clipboard = base64.b64decode(clipboard).decode('utf-8')
         return clipboard
     
